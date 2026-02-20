@@ -9,7 +9,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// ─── Página de prueba en la raíz ───────────────────────────────────
+
 app.get('/', (req, res) => {
     res.send(`<!DOCTYPE html>
 <html lang="es">
