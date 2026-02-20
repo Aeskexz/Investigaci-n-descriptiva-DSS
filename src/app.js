@@ -151,7 +151,7 @@ app.get('/', (req, res) => {
 </html>`);
 });
 
-// ─── Rutas API ───────────────────────────────────────────────────────────────
+
 app.use('/api/citas', citasRoutes);
 app.use('/api/doctores', doctoresRoutes);
 
