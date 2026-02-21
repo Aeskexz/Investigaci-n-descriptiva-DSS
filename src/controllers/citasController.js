@@ -16,7 +16,7 @@ exports.crearCita = async (req, res) => {
     const datosCita = req.body;
 
     // Validar disponibilidad (día y horario)
-    const resultado = citasService.validarDisponibilidad(datosCita);
+    const resultado = await citasService.validarDisponibilidad(datosCita);
     if (!resultado.disponible) {
         return res.status(400).json({ mensaje: resultado.mensaje });
     }

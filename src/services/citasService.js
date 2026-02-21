@@ -2,7 +2,7 @@ const db = require('../db');
 // se le agrega async 
 exports.validarDisponibilidad = async (datosCita) => {
 
-    const { fecha, hora } = datosCita;
+    const { fecha, hora, doctor_id } = datosCita;
 
     const fechaObjeto = new Date(fecha);
     const dia = fechaObjeto.getDay(); // 0 = domingo
