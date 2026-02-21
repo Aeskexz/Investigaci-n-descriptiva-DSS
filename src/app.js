@@ -5,7 +5,7 @@ const citasRoutes = require('./routes/citasRoutes');
 const doctoresRoutes = require('./routes/doctoresRoutes');
 
 const app = express();
-//jajaesexdxd
+
 app.use(cors());
 app.use(express.json());
 
