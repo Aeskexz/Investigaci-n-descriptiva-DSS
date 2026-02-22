@@ -1,6 +1,7 @@
 <div align="center">
 <img width="192" height="192" alt="android-chrome-192x192" src="https://github.com/user-attachments/assets/f19247bd-d319-46aa-83a1-d8fce37adadb" />
 </div>
+
 # Investigación Descriptiva - Backend
 
 <p>
