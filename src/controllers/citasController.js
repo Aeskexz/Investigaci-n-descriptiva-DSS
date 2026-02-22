@@ -12,16 +12,29 @@ exports.obtenerCitas = async (req, res) => {
     res.json(citas);
 };
 
+// funcion para validar que el nombre solo contenga letras
+//usando expresiones regulares
+const esNombreValido = (nombre) => {
+    const carPermitidos = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+    return carPermitidos.test(nombre);
+};
+
 exports.crearCita = async (req, res) => {
     const datosCita = req.body;
+    const { paciente, razon, fecha, hora, doctor_id } = datosCita;
+    
+    //validacion para que no se admitan numeros en el nombre
+    if (!paciente || !esNombreValido(paciente)) {
+        return res.status(400).json({ 
+            mensaje: 'El nombre del paciente no debe contener números.' 
+        });
+    }
 
     // Validar disponibilidad (día y horario)
     const resultado = await citasService.validarDisponibilidad(datosCita);
     if (!resultado.disponible) {
         return res.status(400).json({ mensaje: resultado.mensaje });
     }
-
-    const { paciente, razon, fecha, hora, doctor_id } = datosCita;
 
     // Verificar que el doctor existe
     const [doctores] = await db.query('SELECT id FROM doctores WHERE id = ?', [doctor_id]);
@@ -91,6 +104,13 @@ exports.actualizarCita = async (req, res) => {
                 return res.status(409).json({ mensaje: 'El doctor ya tiene una cita en esa fecha y hora.' });
             }
         }
+
+        //validacion para que no se admitan numeros en el nombre
+        if (paciente && !esNombreValido(paciente)) {
+        return res.status(400).json({
+        mensaje: 'El nombre del paciente no debe contener números.'
+    });
+    }
 
         // Actualizar la cita
         const [resultado] = await db.query(
