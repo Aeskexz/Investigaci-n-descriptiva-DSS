@@ -670,6 +670,89 @@
         .btn-delete:hover {
             background: #dc2626;
         }
+
+        /* Doctor Management Section */
+        .doctor-management-btn {
+            background: var(--secondary);
+            color: white;
+            padding: 8px 16px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .doctor-management-btn:hover {
+            background: var(--secondary-light);
+        }
+
+        .doctor-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 16px;
+            background: var(--background);
+            border-radius: 12px;
+            margin-bottom: 12px;
+            border: 1px solid var(--border);
+            transition: all 0.2s;
+        }
+
+        .doctor-row:hover {
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+
+        .doctor-info {
+            flex: 1;
+        }
+
+        .doctor-info .name {
+            font-weight: 600;
+            font-size: 16px;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .doctor-info .specialty {
+            font-size: 14px;
+            color: var(--text-muted);
+        }
+
+        .doctor-actions {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+            font-weight: 600;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-sm-edit {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-sm-edit:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-sm-delete {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-sm-delete:hover {
+            background: #dc2626;
+        }
     </style>
 
 </head>
@@ -804,24 +887,52 @@
         </div>
 
         <!-- Doctor Panel (visible cuando se elige 'Doctor') -->
-        <div id="doctor-panel" class="card hidden" style="margin-top:24px;">
-            <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-                <div class="card-icon"></div>
-                <div>
-                    <div class="card-title">Panel para Doctores</div>
-                    <div class="card-subtitle">Selecciona un doctor para ver sus horarios</div>
+        <div id="doctor-panel" class="hidden" style="margin-top:24px;">
+            <!-- Card: Gestión de Doctores -->
+            <div class="card" style="margin-bottom: 24px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+                    <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
+                        <div class="card-icon"></div>
+                        <div>
+                            <div class="card-title">Gestión de Doctores</div>
+                            <div class="card-subtitle">Agregar, editar o eliminar doctores</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-secondary" onclick="cargarDoctoresAdmin()">
+                        Actualizar Lista
+                    </button>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
+                    <!-- Formulario para agregar doctor -->
+                    <div>
+                        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Agregar Nuevo Doctor</h3>
+                        <form id="addDoctorForm">
+                            <div class="form-group">
+                                <label>Nombre del Doctor</label>
+                                <input type="text" id="addDoctorNombre" placeholder="Ej: Dr. Juan Pérez" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Especialidad</label>
+                                <input type="text" id="addDoctorEspecialidad" placeholder="Ej: Cardiología" required>
+                            </div>
+                            <button type="submit" class="btn btn-primary" style="width: 100%;">
+                                Agregar Doctor
+                            </button>
+                        </form>
+                        <div id="add-doctor-result" class="result-box" style="margin-top: 12px;">
+                            Completa el formulario para agregar un nuevo doctor
+                        </div>
+                    </div>
+
+                    <!-- Lista de doctores -->
+                    <div>
+                        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Doctores Registrados</h3>
+                        <div id="doctors-admin-container" style="max-height: 400px; overflow-y: auto;">
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div style="margin-top:16px; display:flex; gap:12px; flex-direction:column;">
-                <div class="doctor-item-quick" onclick="showDoctorSchedule('Dr. Carlos Perez','Medicina General')">Dr.
-                    Carlos Perez — Medicina General</div>
-                <div class="doctor-item-quick" onclick="showDoctorSchedule('Dr. Ana Lopez','Pediatra')">Dr. Ana Lopez —
-                    Pediatra</div>
-                <div class="doctor-item-quick" onclick="showDoctorSchedule('Dr. Miguel Torres','Cardiologia')">Dr.
-                    Miguel Torres — Cardiologia</div>
-            </div>
-
-            <div id="doctor-schedule" style="margin-top:18px;"></div>
 
             <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
                 <button class="btn" onclick="backToRole()">Volver</button>
@@ -867,6 +978,36 @@
 
                 <div style="display: flex; gap: 12px; margin-top: 24px;">
                     <button type="button" class="btn btn-outline" onclick="closeEditModal()" style="flex: 1;">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal para editar doctor -->
+    <div id="editDoctorModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Doctor</h2>
+                <button class="close-modal" onclick="closeEditDoctorModal()">&times;</button>
+            </div>
+            <form id="editDoctorForm">
+                <div class="form-group">
+                    <label>Nombre del Doctor</label>
+                    <input type="text" id="editDoctorNombre" placeholder="Nombre del doctor" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Especialidad</label>
+                    <input type="text" id="editDoctorEspecialidad" placeholder="Especialidad" required>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeEditDoctorModal()" style="flex: 1;">
                         Cancelar
                     </button>
                     <button type="submit" class="btn btn-primary" style="flex: 1;">
@@ -1211,6 +1352,10 @@
             document.getElementById('main-content').classList.add('hidden');
             document.getElementById('doctor-panel').classList.remove('hidden');
             document.getElementById('doctor-schedule').innerHTML = '';
+            // Cargar doctores inmediatamente
+            setTimeout(() => {
+                cargarDoctoresAdmin();
+            }, 100);
         }
 
         function backToRole() {
@@ -1375,6 +1520,187 @@
                 alert('Error de conexión: ' + error.message);
             }
         }
+
+        // ========== GESTIÓN DE DOCTORES ==========
+
+        // Variables globales para edición de doctor
+        let doctorEnEdicion = null;
+
+        // Cargar doctores en la sección de administración
+        async function cargarDoctoresAdmin() {
+            const container = document.getElementById('doctors-admin-container');
+
+            try {
+                container.innerHTML = `
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <span>Cargando doctores...</span>
+                    </div>
+                `;
+
+                const res = await fetch(BASE + '/doctores');
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    container.innerHTML = '<div class="result-box">No hay doctores registrados</div>';
+                    return;
+                }
+
+                let doctorsHtml = '';
+                data.forEach(doctor => {
+                    doctorsHtml += `
+                        <div class="doctor-row">
+                            <div class="doctor-info">
+                                <div class="name">${doctor.nombre}</div>
+                                <div class="specialty">${doctor.especialidad}</div>
+                            </div>
+                            <div class="doctor-actions">
+                                <button class="btn-sm btn-sm-edit" onclick="openEditDoctorModal(${doctor.id}, '${doctor.nombre}', '${doctor.especialidad}')">
+                                    Editar
+                                </button>
+                                <button class="btn-sm btn-sm-delete" onclick="eliminarDoctor(${doctor.id})">
+                                    Eliminar
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                container.innerHTML = doctorsHtml;
+
+            } catch (error) {
+                container.innerHTML = `
+                    <div class="result-box error">
+                        Error al cargar doctores: ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        // Abrir modal para editar doctor
+        async function openEditDoctorModal(id, nombre, especialidad) {
+            doctorEnEdicion = id;
+            document.getElementById('editDoctorNombre').value = nombre;
+            document.getElementById('editDoctorEspecialidad').value = especialidad;
+            document.getElementById('editDoctorModal').style.display = 'block';
+        }
+
+        // Cerrar modal de editar doctor
+        function closeEditDoctorModal() {
+            document.getElementById('editDoctorModal').style.display = 'none';
+            doctorEnEdicion = null;
+            document.getElementById('editDoctorForm').reset();
+        }
+
+        // Manejar formulario de edición de doctor
+        document.getElementById('editDoctorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nombre = document.getElementById('editDoctorNombre').value;
+            const especialidad = document.getElementById('editDoctorEspecialidad').value;
+
+            if (!nombre || !especialidad) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BASE}/doctores/${doctorEnEdicion}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, especialidad })
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('Doctor actualizado exitosamente');
+                    closeEditDoctorModal();
+                    cargarDoctoresAdmin();
+                    cargarDoctores(); // Actualizar el select de doctores también
+                } else {
+                    alert('Error: ' + data.mensaje);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+
+        // Eliminar doctor
+        async function eliminarDoctor(id) {
+            if (!confirm('¿Está seguro de que desea eliminar este doctor?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BASE}/doctores/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('Doctor eliminado exitosamente');
+                    cargarDoctoresAdmin();
+                    cargarDoctores();
+                } else {
+                    alert('Error: ' + data.mensaje);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        }
+
+        // Manejar formulario de agregar doctor
+        document.getElementById('addDoctorForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const nombre = document.getElementById('addDoctorNombre').value;
+            const especialidad = document.getElementById('addDoctorEspecialidad').value;
+
+            if (!nombre || !especialidad) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+
+            try {
+                const res = await fetch(BASE + '/doctores', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ nombre, especialidad })
+                });
+
+                const data = await res.json();
+                const resultBox = document.getElementById('add-doctor-result');
+
+                if (res.ok) {
+                    resultBox.className = 'result-box success';
+                    resultBox.innerHTML = `Doctor "${data.doctor.nombre}" agregado exitosamente`;
+                    document.getElementById('addDoctorForm').reset();
+                    cargarDoctoresAdmin();
+                    cargarDoctores();
+                    setTimeout(() => {
+                        resultBox.className = 'result-box';
+                        resultBox.innerHTML = 'Completa el formulario para agregar un nuevo doctor';
+                    }, 3000);
+                } else {
+                    resultBox.className = 'result-box error';
+                    resultBox.innerHTML = `Error: ${data.mensaje}`;
+                }
+            } catch (error) {
+                const resultBox = document.getElementById('add-doctor-result');
+                resultBox.className = 'result-box error';
+                resultBox.innerHTML = `Error de conexión: ${error.message}`;
+            }
+        });
+
+        // Cerrar modal al hacer click fuera (para doctor modal)
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('editDoctorModal');
+            if (event.target == modal) {
+                closeEditDoctorModal();
+            }
+        });
     </script>
 </body>
 
