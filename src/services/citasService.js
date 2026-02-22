@@ -30,10 +30,6 @@ exports.validarDisponibilidad = async (datosCita) => {
         };
     }
 
-    // 🔥 Aquí Iván y Gabriel deben:
-    // 1. Consultar la base de datos
-    // 2. Verificar si el doctor ya tiene cita en esa fecha y hora
-    // 3. Retornar disponible: false si está ocupado
     try {
         // se busca si existe cita para el mismo doctor fecha y hora, se usa await para que js 
         // espere la respuesta de la bd
@@ -48,7 +44,7 @@ exports.validarDisponibilidad = async (datosCita) => {
             };
         }
 
-        // si sale este mensaje todo bien
+
         return {
             disponible: true,
             mensaje: "Horario disponible"
