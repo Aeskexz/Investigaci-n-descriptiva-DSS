@@ -304,7 +304,7 @@
         }
 
         .doctor-specialty::before {
-            content: "•";
+            content: "";
             color: var(--secondary);
             font-size: 18px;
         }
@@ -372,7 +372,7 @@
         }
 
         .appointment-doctor::before {
-            content: "👨‍⚕️";
+            content: "";
             font-size: 14px;
         }
 
@@ -559,6 +559,117 @@
             justify-content: flex-end;
             margin-top: 6px;
         }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background-color: var(--surface);
+            margin: 10% auto;
+            padding: 30px;
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: var(--shadow-xl);
+            animation: slideInDown 0.3s ease;
+        }
+
+        @keyframes slideInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-50px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .modal-header h2 {
+            font-size: 22px;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin: 0;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 28px;
+            font-weight: bold;
+            color: var(--text-muted);
+            cursor: pointer;
+            transition: color 0.2s;
+        }
+
+        .close-modal:hover {
+            color: var(--text-primary);
+        }
+
+        /* Action Buttons in Appointment Card */
+        .appointment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+
+        .btn-edit {
+            background: var(--primary);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-edit:hover {
+            background: var(--primary-light);
+        }
+
+        .btn-delete {
+            background: var(--error);
+            color: white;
+            padding: 6px 12px;
+            border-radius: 8px;
+            border: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+
+        .btn-delete:hover {
+            background: #dc2626;
+        }
     </style>
 
 </head>
@@ -600,7 +711,7 @@
                 <!-- Card: Agendar Cita -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">📅</div>
+                        <div class="card-icon"></div>
                         <div>
                             <div class="card-title">Agendar Nueva Cita</div>
                             <div class="card-subtitle">Complete los datos del paciente</div>
@@ -638,7 +749,6 @@
                         </div>
 
                         <button type="button" class="btn btn-primary btn-full" onclick="agendarCita()">
-                            <span>📌</span>
                             Agendar Cita
                         </button>
                     </form>
@@ -651,7 +761,7 @@
                 <!-- Card: Doctores Disponibles -->
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">👨‍⚕️</div>
+                        <div class="card-icon"></div>
                         <div>
                             <div class="card-title">Doctores Disponibles</div>
                             <div class="card-subtitle">Seleccione un doctor para la cita</div>
@@ -660,7 +770,6 @@
 
                     <button class="btn btn-outline" onclick="cargarDoctores()"
                         style="width: 100%; margin-bottom: 20px;">
-                        <span>🔄</span>
                         Actualizar Lista de Doctores
                     </button>
 
@@ -677,14 +786,13 @@
             <div class="card card-full" style="margin-top: 24px;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
                     <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-                        <div class="card-icon">📋</div>
+                        <div class="card-icon"></div>
                         <div>
                             <div class="card-title">Citas Agendadas</div>
                             <div class="card-subtitle">Listado de todas las citas programadas</div>
                         </div>
                     </div>
                     <button class="btn btn-secondary" onclick="cargarCitas()">
-                        <span>🔄</span>
                         Actualizar Citas
                     </button>
                 </div>
@@ -698,7 +806,7 @@
         <!-- Doctor Panel (visible cuando se elige 'Doctor') -->
         <div id="doctor-panel" class="card hidden" style="margin-top:24px;">
             <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-                <div class="card-icon">🩺</div>
+                <div class="card-icon"></div>
                 <div>
                     <div class="card-title">Panel para Doctores</div>
                     <div class="card-subtitle">Selecciona un doctor para ver sus horarios</div>
@@ -718,6 +826,54 @@
             <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
                 <button class="btn" onclick="backToRole()">Volver</button>
             </div>
+        </div>
+    </div>
+
+    <!-- Modal para editar cita -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Editar Cita</h2>
+                <button class="close-modal" onclick="closeEditModal()">&times;</button>
+            </div>
+            <form id="editForm">
+                <div class="form-group">
+                    <label>Paciente</label>
+                    <input type="text" id="editPaciente" placeholder="Nombre del paciente" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Motivo de consulta</label>
+                    <textarea id="editRazon" rows="3" placeholder="Describa el motivo de la consulta" required></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Fecha</label>
+                        <input type="date" id="editFecha" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Hora</label>
+                        <input type="time" id="editHora" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Doctor</label>
+                    <select id="editDoctor_id" required>
+                        <option value="">-- Seleccione un doctor --</option>
+                    </select>
+                </div>
+
+                <div style="display: flex; gap: 12px; margin-top: 24px;">
+                    <button type="button" class="btn btn-outline" onclick="closeEditModal()" style="flex: 1;">
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+                        Guardar Cambios
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -810,7 +966,7 @@
             if (!paciente || !razon || !fecha || !horaInput || !doctor_id) {
                 const resultBox = document.getElementById('res-cita');
                 resultBox.className = 'result-box error';
-                resultBox.innerHTML = '⚠️ Por favor complete todos los campos';
+                resultBox.innerHTML = 'Por favor complete todos los campos';
                 return;
             }
 
@@ -849,7 +1005,7 @@
                     const cita = data.cita || data;
                     resultBox.innerHTML = `
                         <div class="success-card">
-                            <div class="title">✅ Cita agendada exitosamente</div>
+                            <div class="title">Cita agendada exitosamente</div>
                             <div class="details">
                                 <div><div class="label">Paciente</div><div>${cita.paciente}</div></div>
                                 <div><div class="label">Doctor ID</div><div>${cita.doctor_id}</div></div>
@@ -874,14 +1030,14 @@
                     cargarCitas();
                 } else {
                     resultBox.innerHTML = `
-                        <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">❌ Error al agendar</div>
+                        <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">Error al agendar</div>
                         <pre style="margin: 0; font-family: inherit;">${JSON.stringify(data, null, 2)}</pre>
                     `;
                 }
             } catch (e) {
                 resultBox.className = 'result-box error';
                 resultBox.innerHTML = `
-                    <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">❌ Error de conexión</div>
+                    <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">Error de conexión</div>
                     <pre style="margin: 0; font-family: inherit;">${e.message}</pre>
                 `;
             }
@@ -989,6 +1145,14 @@
                             <div class="appointment-doctor">
                                 ${cita.doctor} - ${cita.especialidad}
                             </div>
+                            <div class="appointment-actions">
+                                <button class="btn-edit" onclick="openEditModal(${cita.id}, '${cita.paciente}', '${cita.razon}', '${cita.fecha}', '${cita.hora}', ${cita.doctor_id})">
+                                    Editar
+                                </button>
+                                <button class="btn-delete" onclick="eliminarCita(${cita.id})">
+                                    Cancelar Cita
+                                </button>
+                            </div>
                         </div>
                     `;
                 });
@@ -1021,7 +1185,7 @@
             navigator.clipboard.writeText(String(id)).then(() => {
                 const prev = document.getElementById('res-cita').innerHTML;
                 const resultBox = document.getElementById('res-cita');
-                resultBox.innerHTML = '<div class="success-card"><div class="title">✅ ID copiado al portapapeles</div></div>';
+                resultBox.innerHTML = '<div class="success-card"><div class="title">ID copiado al portapapeles</div></div>';
                 setTimeout(() => { resultBox.innerHTML = prev; }, 1500);
             }).catch(() => alert('No se pudo copiar el ID'));
         }
@@ -1092,6 +1256,125 @@
 
         // Cargar citas al iniciar
         cargarCitas();
+
+        // Variables globales para el modal
+        let citaEnEdicion = null;
+
+        // Abrir modal de edición
+        async function openEditModal(id, paciente, razon, fecha, hora, doctorId) {
+            citaEnEdicion = id;
+            document.getElementById('editPaciente').value = paciente;
+            document.getElementById('editRazon').value = razon;
+            document.getElementById('editFecha').value = fecha;
+            document.getElementById('editHora').value = hora;
+            document.getElementById('editDoctor_id').value = doctorId;
+
+            // Cargar doctores en el select del modal si no está hecho
+            const selectEdit = document.getElementById('editDoctor_id');
+            if (selectEdit.children.length === 1) { // Solo tiene la opción por defecto
+                try {
+                    const res = await fetch(BASE + '/doctores');
+                    const doctores = await res.json();
+                    selectEdit.innerHTML = '';
+                    doctores.forEach(d => {
+                        const option = document.createElement('option');
+                        option.value = d.id;
+                        option.textContent = `${d.nombre} — ${d.especialidad}`;
+                        selectEdit.appendChild(option);
+                    });
+                    selectEdit.value = doctorId;
+                } catch (error) {
+                    console.error('Error cargando doctores:', error);
+                }
+            }
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // Cerrar modal de edición
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+            citaEnEdicion = null;
+            document.getElementById('editForm').reset();
+        }
+
+        // Cerrar modal al hacer click fuera de él
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeEditModal();
+            }
+        }
+
+        // Manejar envío del formulario de edición
+        document.getElementById('editForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+
+            const paciente = document.getElementById('editPaciente').value;
+            const razon = document.getElementById('editRazon').value;
+            const fecha = document.getElementById('editFecha').value;
+            const horaInput = document.getElementById('editHora').value;
+            const doctor_id = document.getElementById('editDoctor_id').value;
+
+            if (!paciente || !razon || !fecha || !horaInput || !doctor_id) {
+                alert('Por favor complete todos los campos');
+                return;
+            }
+
+            const hora = horaInput + ':00';
+
+            const body = {
+                paciente,
+                razon,
+                fecha,
+                hora,
+                doctor_id: parseInt(doctor_id)
+            };
+
+            try {
+                const res = await fetch(`${BASE}/citas/${citaEnEdicion}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('Cita actualizada exitosamente');
+                    closeEditModal();
+                    cargarCitas();
+                } else {
+                    alert('Error: ' + data.mensaje);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        });
+
+        // Eliminar cita
+        async function eliminarCita(id) {
+            if (!confirm('¿Está seguro de que desea eliminar esta cita?')) {
+                return;
+            }
+
+            try {
+                const res = await fetch(`${BASE}/citas/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await res.json();
+
+                if (res.ok) {
+                    alert('Cita cancelada exitosamente');
+                    cargarCitas();
+                } else {
+                    alert('Error: ' + data.mensaje);
+                }
+            } catch (error) {
+                alert('Error de conexión: ' + error.message);
+            }
+        }
     </script>
 </body>
 

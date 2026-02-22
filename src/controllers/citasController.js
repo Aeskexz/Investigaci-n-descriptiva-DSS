@@ -45,7 +45,7 @@ exports.crearCita = async (req, res) => {
     );
 
     res.status(201).json({
-        mensaje: '✅ Cita creada exitosamente.',
+        mensaje: 'Cita creada exitosamente.',
         cita: {
             id: resultado_insert.insertId,
             paciente,
@@ -55,4 +55,86 @@ exports.crearCita = async (req, res) => {
             doctor_id
         }
     });
+};
+
+exports.actualizarCita = async (req, res) => {
+    const { id } = req.params;
+    const { paciente, razon, fecha, hora, doctor_id } = req.body;
+
+    try {
+        // Verificar que la cita existe
+        const [citaExistente] = await db.query('SELECT * FROM citas WHERE id = ?', [id]);
+        if (citaExistente.length === 0) {
+            return res.status(404).json({ mensaje: 'La cita no existe.' });
+        }
+
+        // Verificar que el doctor existe
+        const [doctores] = await db.query('SELECT id FROM doctores WHERE id = ?', [doctor_id]);
+        if (doctores.length === 0) {
+            return res.status(404).json({ mensaje: 'El doctor especificado no existe.' });
+        }
+
+        // Validar disponibilidad solo si cambia fecha, hora o doctor
+        if (fecha !== citaExistente[0].fecha || hora !== citaExistente[0].hora || doctor_id !== citaExistente[0].doctor_id) {
+            const datosCita = { fecha, hora, doctor_id };
+            const resultado = await citasService.validarDisponibilidad(datosCita);
+            if (!resultado.disponible) {
+                return res.status(400).json({ mensaje: resultado.mensaje });
+            }
+
+            // Verificar que no haya otra cita del mismo doctor en esa fecha y hora
+            const [citasConflicto] = await db.query(
+                'SELECT id FROM citas WHERE doctor_id = ? AND fecha = ? AND hora = ? AND id != ?',
+                [doctor_id, fecha, hora, id]
+            );
+            if (citasConflicto.length > 0) {
+                return res.status(409).json({ mensaje: 'El doctor ya tiene una cita en esa fecha y hora.' });
+            }
+        }
+
+        // Actualizar la cita
+        const [resultado] = await db.query(
+            'UPDATE citas SET paciente = ?, razon = ?, fecha = ?, hora = ?, doctor_id = ? WHERE id = ?',
+            [paciente, razon, fecha, hora, doctor_id, id]
+        );
+
+        res.json({
+            mensaje: 'Cita actualizada exitosamente.',
+            cita: {
+                id,
+                paciente,
+                razon,
+                fecha,
+                hora,
+                doctor_id
+            }
+        });
+
+    } catch (error) {
+        console.error('Error al actualizar cita:', error);
+        res.status(500).json({ mensaje: 'Error interno al actualizar la cita.' });
+    }
+};
+
+exports.eliminarCita = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        // Verificar que la cita existe
+        const [citaExistente] = await db.query('SELECT * FROM citas WHERE id = ?', [id]);
+        if (citaExistente.length === 0) {
+            return res.status(404).json({ mensaje: 'La cita no existe.' });
+        }
+
+        // Eliminar la cita
+        const [resultado] = await db.query('DELETE FROM citas WHERE id = ?', [id]);
+
+        res.json({
+            mensaje: 'Cita cancelada exitosamente.'
+        });
+
+    } catch (error) {
+        console.error('Error al eliminar cita:', error);
+        res.status(500).json({ mensaje: 'Error interno al eliminar la cita.' });
+    }
 };
