@@ -574,8 +574,13 @@
         }
 
         @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
         }
 
         .modal-content {
@@ -595,6 +600,7 @@
                 opacity: 0;
                 transform: translateY(-50px);
             }
+
             to {
                 opacity: 1;
                 transform: translateY(0);
@@ -955,7 +961,8 @@
 
                 <div class="form-group">
                     <label>Motivo de consulta</label>
-                    <textarea id="editRazon" rows="3" placeholder="Describa el motivo de la consulta" required></textarea>
+                    <textarea id="editRazon" rows="3" placeholder="Describa el motivo de la consulta"
+                        required></textarea>
                 </div>
 
                 <div class="form-row">
@@ -1170,9 +1177,10 @@
                     // Recargar citas
                     cargarCitas();
                 } else {
+                    const mensajeError = data.mensaje || 'Ocurrió un error inesperado al agendar la cita. Por favor, intente de nuevo.';
                     resultBox.innerHTML = `
-                        <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">Error al agendar</div>
-                        <pre style="margin: 0; font-family: inherit;">${JSON.stringify(data, null, 2)}</pre>
+                        <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">No se pudo agendar la cita</div>
+                        <div style="color: var(--error); font-size: 14px; margin-top: 4px;">${mensajeError}</div>
                     `;
                 }
             } catch (e) {
@@ -1444,7 +1452,7 @@
         }
 
         // Cerrar modal al hacer click fuera de él
-        window.onclick = function(event) {
+        window.onclick = function (event) {
             const modal = document.getElementById('editModal');
             if (event.target == modal) {
                 closeEditModal();
@@ -1452,7 +1460,7 @@
         }
 
         // Manejar envío del formulario de edición
-        document.getElementById('editForm').addEventListener('submit', async function(e) {
+        document.getElementById('editForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const paciente = document.getElementById('editPaciente').value;
@@ -1593,7 +1601,7 @@
         }
 
         // Manejar formulario de edición de doctor
-        document.getElementById('editDoctorForm').addEventListener('submit', async function(e) {
+        document.getElementById('editDoctorForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const nombre = document.getElementById('editDoctorNombre').value;
@@ -1652,7 +1660,7 @@
         }
 
         // Manejar formulario de agregar doctor
-        document.getElementById('addDoctorForm').addEventListener('submit', async function(e) {
+        document.getElementById('addDoctorForm').addEventListener('submit', async function (e) {
             e.preventDefault();
 
             const nombre = document.getElementById('addDoctorNombre').value;
@@ -1695,7 +1703,7 @@
         });
 
         // Cerrar modal al hacer click fuera (para doctor modal)
-        window.addEventListener('click', function(event) {
+        window.addEventListener('click', function (event) {
             const modal = document.getElementById('editDoctorModal');
             if (event.target == modal) {
                 closeEditDoctorModal();
