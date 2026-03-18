@@ -4,12 +4,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Citas Medicas - Sistema de Gestión de Citas</title>
-    <!-- Favicon icons -->
-    <link rel="apple-touch-icon" sizes="180x180" href="/favicon_io/apple-touch-icon.png">
+    <title>Citas Médicas - Sistema de Gestión</title>
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon_io/favicon-32x32.png">
-    <link rel="icon" type="image/png" sizes="16x16" href="/favicon_io/favicon-16x16.png">
-    <link rel="manifest" href="/favicon_io/site.webmanifest">
     <style>
         * {
             margin: 0;
@@ -36,7 +32,6 @@
             --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.02);
             --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
             --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
         }
 
         body {
@@ -47,9 +42,8 @@
             min-height: 100vh;
         }
 
-        /* Layout */
         .app {
-            max-width: 1400px;
+            max-width: 1200px;
             margin: 0 auto;
             padding: 24px;
         }
@@ -60,44 +54,226 @@
             border-radius: 20px;
             padding: 32px 40px;
             margin-bottom: 32px;
-            box-shadow: var(--shadow-xl);
+            box-shadow: var(--shadow-lg);
             color: white;
         }
 
         .header h1 {
             font-size: 32px;
             font-weight: 600;
-            letter-spacing: -0.5px;
             margin-bottom: 8px;
         }
 
         .header .subtitle {
             font-size: 16px;
             opacity: 0.9;
+        }
+
+        .header-user {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 16px;
+            padding-top: 16px;
+            border-top: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .user-info {
             display: flex;
             align-items: center;
             gap: 12px;
         }
 
-        .header .badge {
+        .user-badge {
             background: rgba(255, 255, 255, 0.2);
             padding: 4px 12px;
             border-radius: 20px;
-            font-size: 14px;
+            font-size: 13px;
             font-weight: 500;
         }
 
-        .header .server-info {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            padding: 6px 12px;
-            border-radius: 8px;
-            font-family: monospace;
+        /* Auth Container */
+        .auth-container {
+            max-width: 450px;
+            margin: 40px auto;
         }
 
-        /* Grid Layout */
+        .auth-card {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border);
+        }
+
+        .auth-card h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+            color: var(--text-primary);
+        }
+
+        .auth-card .subtitle {
+            color: var(--text-muted);
+            margin-bottom: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--text-secondary);
+            margin-bottom: 8px;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            background: var(--surface);
+            transition: all 0.2s;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(11, 59, 92, 0.1);
+        }
+
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 600;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .btn-secondary {
+            background: var(--secondary);
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: var(--secondary-light);
+        }
+
+        .btn-outline {
+            background: transparent;
+            border: 2px solid var(--primary);
+            color: var(--primary);
+        }
+
+        .btn-outline:hover {
+            background: var(--primary);
+            color: white;
+        }
+
+        .btn-danger {
+            background: var(--error);
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #dc2626;
+        }
+
+        .btn-success {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #059669;
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .auth-switch {
+            text-align: center;
+            margin-top: 24px;
+            padding-top: 24px;
+            border-top: 1px solid var(--border);
+            color: var(--text-secondary);
+        }
+
+        .auth-switch a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .auth-switch a:hover {
+            text-decoration: underline;
+        }
+
+        .role-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .role-option {
+            padding: 16px;
+            border: 2px solid var(--border);
+            border-radius: 12px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: var(--surface);
+        }
+
+        .role-option:hover {
+            border-color: var(--primary-light);
+            background: rgba(11, 59, 92, 0.05);
+        }
+
+        .role-option.selected {
+            border-color: var(--primary);
+            background: rgba(11, 59, 92, 0.1);
+        }
+
+        .role-option .icon {
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .role-option .label {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        /* Main Content */
         .grid {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
@@ -105,18 +281,12 @@
             margin-bottom: 24px;
         }
 
-        /* Cards */
         .card {
             background: var(--surface);
             border-radius: 20px;
             padding: 28px;
             box-shadow: var(--shadow-md);
             border: 1px solid var(--border);
-            transition: transform 0.2s, box-shadow 0.2s;
-        }
-
-        .card:hover {
-            box-shadow: var(--shadow-lg);
         }
 
         .card-header {
@@ -143,18 +313,11 @@
         .card-title {
             font-size: 20px;
             font-weight: 600;
-            color: var(--text-primary);
         }
 
         .card-subtitle {
             font-size: 14px;
             color: var(--text-muted);
-            margin-top: 2px;
-        }
-
-        /* Formulario */
-        .form-group {
-            margin-bottom: 20px;
         }
 
         .form-row {
@@ -163,109 +326,11 @@
             gap: 16px;
         }
 
-        label {
-            display: block;
-            font-size: 14px;
-            font-weight: 500;
-            color: var(--text-secondary);
-            margin-bottom: 8px;
-        }
-
-        input,
-        select,
-        textarea {
-            width: 100%;
-            padding: 12px 16px;
-            font-size: 15px;
-            font-family: inherit;
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            background: var(--surface);
-            color: var(--text-primary);
-            transition: all 0.2s;
-        }
-
-        input:hover,
-        select:hover,
-        textarea:hover {
-            border-color: var(--primary-light);
-        }
-
-        input:focus,
-        select:focus,
-        textarea:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(11, 59, 92, 0.1);
-        }
-
-        input::placeholder,
-        textarea::placeholder {
-            color: var(--text-muted);
-        }
-
-        /* Botones */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 24px;
-            font-size: 15px;
-            font-weight: 600;
-            border-radius: 12px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-            background: var(--surface);
-            color: var(--text-primary);
-            border: 2px solid var(--border);
-        }
-
-        .btn-primary {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
-            color: white;
-            border: none;
-        }
-
-        .btn-primary:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-lg);
-        }
-
-        .btn-secondary {
-            background: var(--secondary);
-            color: white;
-            border: none;
-        }
-
-        .btn-secondary:hover {
-            background: var(--secondary-light);
-            transform: translateY(-2px);
-        }
-
-        .btn-outline {
-            background: transparent;
-            border: 2px solid var(--primary);
-            color: var(--primary);
-        }
-
-        .btn-outline:hover {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-full {
-            width: 100%;
-            margin-top: 16px;
-        }
-
-        /* Lista de Doctores */
+        /* Doctors List */
         .doctors-list {
             display: flex;
             flex-direction: column;
             gap: 12px;
-            margin-top: 16px;
         }
 
         .doctor-item {
@@ -275,12 +340,14 @@
             padding: 16px;
             cursor: pointer;
             transition: all 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
 
         .doctor-item:hover {
             border-color: var(--primary);
             background: white;
-            transform: translateX(4px);
         }
 
         .doctor-item.selected {
@@ -288,35 +355,27 @@
             background: linear-gradient(135deg, rgba(0, 168, 150, 0.05) 0%, rgba(2, 195, 167, 0.1) 100%);
         }
 
+        .doctor-info {
+            flex: 1;
+        }
+
         .doctor-name {
             font-weight: 600;
             font-size: 16px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
         }
 
         .doctor-specialty {
             font-size: 14px;
             color: var(--text-muted);
-            display: flex;
-            align-items: center;
-            gap: 6px;
         }
 
-        .doctor-specialty::before {
-            content: "";
-            color: var(--secondary);
-            font-size: 18px;
-        }
-
-        /* Citas List */
+        /* Appointments */
         .appointments-list {
             display: flex;
             flex-direction: column;
             gap: 16px;
             max-height: 500px;
             overflow-y: auto;
-            padding-right: 8px;
         }
 
         .appointment-card {
@@ -324,12 +383,6 @@
             border-radius: 16px;
             padding: 20px;
             border-left: 4px solid var(--primary);
-            transition: all 0.2s;
-        }
-
-        .appointment-card:hover {
-            transform: translateY(-2px);
-            box-shadow: var(--shadow-md);
         }
 
         .appointment-header {
@@ -341,8 +394,6 @@
 
         .appointment-patient {
             font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
         }
 
         .appointment-datetime {
@@ -352,7 +403,6 @@
             font-size: 13px;
             font-weight: 500;
             color: var(--primary);
-            border: 1px solid var(--border);
         }
 
         .appointment-reason {
@@ -364,29 +414,48 @@
         }
 
         .appointment-doctor {
-            display: flex;
-            align-items: center;
-            gap: 8px;
             font-size: 14px;
             color: var(--text-muted);
         }
 
-        .appointment-doctor::before {
-            content: "";
-            font-size: 14px;
+        .appointment-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+            justify-content: flex-end;
+        }
+
+        /* Admin Panel */
+        .admin-panel {
+            margin-bottom: 24px;
+            padding: 20px;
+            background: linear-gradient(135deg, rgba(11, 59, 92, 0.05) 0%, rgba(30, 78, 111, 0.05) 100%);
+            border: 2px solid var(--primary);
+            border-radius: 16px;
+        }
+
+        .admin-panel h3 {
+            color: var(--primary);
+            margin-bottom: 16px;
+        }
+
+        .admin-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background: var(--surface);
+            border-radius: 8px;
+            margin-bottom: 8px;
         }
 
         /* Result Box */
         .result-box {
             margin-top: 24px;
-            background: var(--background);
-            border-radius: 16px;
             padding: 16px;
+            border-radius: 12px;
+            background: var(--background);
             border: 2px solid var(--border);
-            font-family: 'Monaco', 'Menlo', monospace;
-            font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
         }
 
         .result-box.success {
@@ -399,7 +468,7 @@
             background: rgba(239, 68, 68, 0.05);
         }
 
-        /* Loading States */
+        /* Loading */
         .loading {
             display: flex;
             align-items: center;
@@ -419,1297 +488,747 @@
         }
 
         @keyframes spin {
-            to {
-                transform: rotate(360deg);
-            }
+            to { transform: rotate(360deg); }
         }
 
-        /* Full width card */
-        .card-full {
-            grid-column: 1 / -1;
-        }
-
-        /* Scrollbar */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: var(--background);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--border);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--text-muted);
-        }
+        .hidden { display: none; }
 
         /* Responsive */
-        @media (max-width: 1024px) {
-            .grid {
-                grid-template-columns: 1fr;
-            }
-
-            .app {
-                padding: 16px;
-            }
-
-            .header {
-                padding: 24px;
-            }
-        }
-
-        /* Animations */
-        @keyframes slideIn {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .card {
-            animation: slideIn 0.3s ease-out;
-        }
-
-        .hidden {
-            display: none;
-        }
-
-        .role-section {
-            background: var(--surface);
-            border-radius: 16px;
-            padding: 24px;
-            margin-bottom: 24px;
-            border: 1px solid var(--border);
-            box-shadow: var(--shadow-sm);
-            display: flex;
-            gap: 16px;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .role-actions {
-            display: flex;
-            gap: 12px;
-        }
-
-        .doctor-panel {
-            margin-top: 12px;
-        }
-
-        .doctor-item-quick {
-            padding: 12px 16px;
-            border-radius: 12px;
-            border: 1px dashed var(--border);
-            cursor: pointer;
-            background: var(--background);
-        }
-
-        .doctor-item-quick:hover {
-            border-color: var(--primary);
-            background: white;
-        }
-
-        /* Success Card / Modal */
-        .success-card {
-            display: flex;
-            flex-direction: column;
-            gap: 12px;
-            padding: 18px;
-            border-radius: 12px;
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.03));
-            border: 1px solid rgba(16, 185, 129, 0.25);
-            box-shadow: var(--shadow-sm);
-        }
-
-        .success-card .title {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            font-weight: 700;
-            color: var(--success);
-            font-size: 16px;
-        }
-
-        .success-card .details {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 8px 16px;
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .success-card .details .label {
-            font-weight: 600;
-            color: var(--text-primary);
-        }
-
-        .success-card .actions {
-            display: flex;
-            gap: 8px;
-            justify-content: flex-end;
-            margin-top: 6px;
-        }
-
-        /* Modal Styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.5);
-            animation: fadeIn 0.3s ease;
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-
-            to {
-                opacity: 1;
-            }
-        }
-
-        .modal-content {
-            background-color: var(--surface);
-            margin: 10% auto;
-            padding: 30px;
-            border: 1px solid var(--border);
-            border-radius: 20px;
-            width: 90%;
-            max-width: 500px;
-            box-shadow: var(--shadow-xl);
-            animation: slideInDown 0.3s ease;
-        }
-
-        @keyframes slideInDown {
-            from {
-                opacity: 0;
-                transform: translateY(-50px);
-            }
-
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        .modal-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 24px;
-            padding-bottom: 16px;
-            border-bottom: 2px solid var(--border);
-        }
-
-        .modal-header h2 {
-            font-size: 22px;
-            font-weight: 600;
-            color: var(--text-primary);
-            margin: 0;
-        }
-
-        .close-modal {
-            background: none;
-            border: none;
-            font-size: 28px;
-            font-weight: bold;
-            color: var(--text-muted);
-            cursor: pointer;
-            transition: color 0.2s;
-        }
-
-        .close-modal:hover {
-            color: var(--text-primary);
-        }
-
-        /* Action Buttons in Appointment Card */
-        .appointment-actions {
-            display: flex;
-            gap: 8px;
-            margin-top: 12px;
-            justify-content: flex-end;
-        }
-
-        .btn-edit {
-            background: var(--primary);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-edit:hover {
-            background: var(--primary-light);
-        }
-
-        .btn-delete {
-            background: var(--error);
-            color: white;
-            padding: 6px 12px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 12px;
-            font-weight: 500;
-            transition: all 0.2s;
-        }
-
-        .btn-delete:hover {
-            background: #dc2626;
-        }
-
-        /* Doctor Management Section */
-        .doctor-management-btn {
-            background: var(--secondary);
-            color: white;
-            padding: 8px 16px;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            font-size: 13px;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .doctor-management-btn:hover {
-            background: var(--secondary-light);
-        }
-
-        .doctor-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 16px;
-            background: var(--background);
-            border-radius: 12px;
-            margin-bottom: 12px;
-            border: 1px solid var(--border);
-            transition: all 0.2s;
-        }
-
-        .doctor-row:hover {
-            background: white;
-            box-shadow: var(--shadow-sm);
-        }
-
-        .doctor-info {
-            flex: 1;
-        }
-
-        .doctor-info .name {
-            font-weight: 600;
-            font-size: 16px;
-            color: var(--text-primary);
-            margin-bottom: 4px;
-        }
-
-        .doctor-info .specialty {
-            font-size: 14px;
-            color: var(--text-muted);
-        }
-
-        .doctor-actions {
-            display: flex;
-            gap: 8px;
-        }
-
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-            font-weight: 600;
-            border-radius: 8px;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-
-        .btn-sm-edit {
-            background: var(--primary);
-            color: white;
-        }
-
-        .btn-sm-edit:hover {
-            background: var(--primary-light);
-        }
-
-        .btn-sm-delete {
-            background: var(--error);
-            color: white;
-        }
-
-        .btn-sm-delete:hover {
-            background: #dc2626;
+        @media (max-width: 768px) {
+            .grid { grid-template-columns: 1fr; }
+            .header { padding: 24px; }
+            .auth-card { padding: 24px; }
         }
     </style>
-
 </head>
 
 <body>
     <div class="app">
-        <!-- Header Profesional -->
-        <header class="header">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div>
-                    <h1>Citas Medicas</h1>
-                    <div class="subtitle">
-                        <span>Sistema de Gestión de Citas Médicas</span>
-                        <span class="badge">Panel Administrativo</span>
-                    </div>
+        <!-- Header -->
+        <header class="header" id="header">
+            <h1>🏥 Citas Médicas</h1>
+            <p class="subtitle">Sistema de Gestión de Citas</p>
+            <div class="header-user hidden" id="headerUser">
+                <div class="user-info">
+                    <span id="userEmail"></span>
+                    <span class="user-badge" id="userRole"></span>
                 </div>
-                <div class="server-info">
-
-
-                </div>
+                <button class="btn btn-outline" onclick="logout()" style="border-color: white; color: white;">
+                    Cerrar Sesión
+                </button>
             </div>
         </header>
 
-        <!-- Role Selection -->
-        <div id="role-section" class="role-section">
-            <div>
-                <h2 style="margin-bottom:6px">¿Quién eres?</h2>
-                <div style="color:var(--text-muted);">Selecciona si eres paciente o doctor/a para continuar.</div>
-            </div>
-            <div class="role-actions">
-                <button class="btn btn-primary" onclick="choosePatient()">Soy Paciente</button>
-                <button class="btn btn-outline" onclick="chooseDoctor()">Soy Doctor/a</button>
+        <!-- Login Form -->
+        <div class="auth-container" id="loginView">
+            <div class="auth-card">
+                <h2>Iniciar Sesión</h2>
+                <p class="subtitle">Ingresa tus credenciales para continuar</p>
+
+                <form onsubmit="login(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" placeholder="tu@email.com" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="loginPassword" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Iniciar Sesión</button>
+                </form>
+
+                <div class="auth-switch">
+                    ¿No tienes cuenta? <a onclick="showRegister()">Regístrate como Paciente</a>
+                </div>
             </div>
         </div>
 
-        <div id="main-content" class="hidden">
-            <!-- Grid Principal -->
-            <div class="grid">
-                <!-- Card: Agendar Cita -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"></div>
-                        <div>
-                            <div class="card-title">Agendar Nueva Cita</div>
-                            <div class="card-subtitle">Complete los datos del paciente</div>
-                        </div>
+        <!-- Register Form -->
+        <div class="auth-container hidden" id="registerView">
+            <div class="auth-card">
+                <h2>Crear Cuenta - Paciente</h2>
+                <p class="subtitle">¡Crea una cuenta totalmente gratuita y haz una cita médica!</p>
+
+                <form onsubmit="registerPaciente(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="regEmail" placeholder="tu@email.com" required>
                     </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Nombre Completo</label>
+                        <input type="text" id="regNombre" placeholder="Tu nombre" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Teléfono (opcional)</label>
+                        <input type="tel" id="regTelefono" placeholder="Tu teléfono">
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-full">Crear Cuenta</button>
+                </form>
 
-                    <form id="appointmentForm">
-                        <div class="form-group">
-                            <label>Paciente</label>
-                            <input type="text" id="paciente" placeholder="Nombre completo del paciente" required>
-                        </div>
+                <div class="auth-switch">
+                    ¿Ya tienes cuenta? <a onclick="showLogin()">Iniciar sesión</a>
+                </div>
+            </div>
+        </div>
 
-                        <div class="form-group">
-                            <label>Motivo de consulta</label>
-                            <textarea id="razon" rows="3" placeholder="Describa el motivo de la consulta"
-                                required></textarea>
-                        </div>
+        <!-- Main Content -->
+        <div class="hidden" id="mainContent">
+            <!-- Admin Panel -->
+            <div class="admin-panel hidden" id="adminPanel">
+                <h3>🔧 Panel de Administrador</h3>
+                
+                <div style="margin-bottom: 20px;">
+                    <button class="btn btn-secondary" onclick="showAdminDoctors()">Gestionar Doctores</button>
+                    <button class="btn btn-secondary" onclick="showAdminPatients()">Gestionar Pacientes</button>
+                </div>
 
-                        <div class="form-row">
-                            <div class="form-group">
-                                <label>Fecha</label>
-                                <input type="date" id="fecha" required>
-                            </div>
-                            <div class="form-group">
-                                <label>Hora</label>
-                                <input type="time" id="hora" required>
-                            </div>
-                        </div>
-
-                        <div class="form-group">
-                            <label>Seleccionar Doctor</label>
-                            <select id="doctor_id" required>
-                                <option value="">-- Seleccione un doctor --</option>
-                            </select>
-                        </div>
-
-                        <button type="button" class="btn btn-primary btn-full" onclick="agendarCita()">
-                            Agendar Cita
-                        </button>
+                <div id="adminDoctorsView" class="hidden">
+                    <h4 style="margin-bottom: 12px;">Crear Doctor</h4>
+                    <form onsubmit="adminCreateDoctor(event)" style="display: grid; gap: 12px; grid-template-columns: 1fr 1fr;">
+                        <input type="email" id="adminDocEmail" placeholder="Email del doctor" required>
+                        <input type="password" id="adminDocPassword" placeholder="Contraseña" required>
+                        <input type="text" id="adminDocNombre" placeholder="Nombre completo" required>
+                        <input type="text" id="adminDocEspecialidad" placeholder="Especialidad" required>
+                        <button type="submit" class="btn btn-primary" style="grid-column: 1/-1;">Crear Doctor</button>
                     </form>
-
-                    <div id="res-cita" class="result-box">
-                        Complete el formulario para agendar una cita
-                    </div>
+                    
+                    <h4 style="margin: 20px 0 12px;">Doctores Registrados</h4>
+                    <div id="adminDoctorsList"></div>
                 </div>
 
-                <!-- Card: Doctores Disponibles -->
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-icon"></div>
-                        <div>
-                            <div class="card-title">Doctores Disponibles</div>
-                            <div class="card-subtitle">Seleccione un doctor para la cita</div>
-                        </div>
-                    </div>
-
-                    <button class="btn btn-outline" onclick="cargarDoctores()"
-                        style="width: 100%; margin-bottom: 20px;">
-                        Actualizar Lista de Doctores
-                    </button>
-
-                    <div id="doctors-container">
-                        <div class="loading">
-                            <div class="spinner"></div>
-                            <span>Cargando doctores...</span>
-                        </div>
-                    </div>
+                <div id="adminPatientsView">
+                    <h4 style="margin-bottom: 12px;">Pacientes Registrados</h4>
+                    <div id="adminPatientsList"></div>
                 </div>
             </div>
 
-            <!-- Card: Citas Agendadas (Full Width) -->
-            <div class="card card-full" style="margin-top: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-                        <div class="card-icon"></div>
-                        <div>
-                            <div class="card-title">Citas Agendadas</div>
-                            <div class="card-subtitle">Listado de todas las citas programadas</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="cargarCitas()">
-                        Actualizar Citas
-                    </button>
-                </div>
-
-                <div id="citas-container">
-                    <!-- Las citas se cargarán aquí -->
-                </div>
-            </div>
-        </div>
-
-        <!-- Doctor Panel (visible cuando se elige 'Doctor') -->
-        <div id="doctor-panel" class="hidden" style="margin-top:24px;">
-            <!-- Card: Gestión de Doctores -->
-            <div class="card" style="margin-bottom: 24px;">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
-                    <div class="card-header" style="margin-bottom: 0; padding-bottom: 0; border-bottom: none;">
-                        <div class="card-icon"></div>
-                        <div>
-                            <div class="card-title">Gestión de Doctores</div>
-                            <div class="card-subtitle">Agregar, editar o eliminar doctores</div>
-                        </div>
-                    </div>
-                    <button class="btn btn-secondary" onclick="cargarDoctoresAdmin()">
-                        Actualizar Lista
-                    </button>
-                </div>
-
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px;">
-                    <!-- Formulario para agregar doctor -->
-                    <div>
-                        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Agregar Nuevo Doctor</h3>
-                        <form id="addDoctorForm">
-                            <div class="form-group">
-                                <label>Nombre del Doctor</label>
-                                <input type="text" id="addDoctorNombre" placeholder="Ej: Dr. Juan Pérez" required>
+            <!-- Panel para Pacientes -->
+            <div class="hidden" id="pacientePanel">
+                <div class="grid">
+                    <!-- Agendar Cita -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">📅</div>
+                            <div>
+                                <div class="card-title">Agendar Nueva Cita</div>
+                                <div class="card-subtitle">Reserva tu cita médica</div>
                             </div>
-                            <div class="form-group">
-                                <label>Especialidad</label>
-                                <input type="text" id="addDoctorEspecialidad" placeholder="Ej: Cardiología" required>
+                        </div>
+
+                        <div style="background: rgba(0, 168, 150, 0.05); border: 1px solid var(--secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                            <strong style="color: var(--primary);">🕐 Horario de Atención</strong>
+                            <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Lunes a Viernes:</span>
+                                    <span>8:00 AM - 5:00 PM</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
+                                    <span>Sábado:</span>
+                                    <span>8:00 AM - 12:00 PM</span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; color: var(--error);">
+                                    <span>Domingo:</span>
+                                    <span>CERRADO</span>
+                                </div>
                             </div>
-                            <button type="submit" class="btn btn-primary" style="width: 100%;">
-                                Agregar Doctor
+                        </div>
+
+                        <form id="appointmentForm">
+                            <div class="form-group">
+                                <label>Motivo de consulta</label>
+                                <textarea id="citaRazon" rows="3" placeholder="Describa el motivo de la consulta" required></textarea>
+                            </div>
+
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label>Fecha</label>
+                                    <input type="date" id="citaFecha" required onchange="validarFechaSeleccionada()">
+                                </div>
+                                <div class="form-group">
+                                    <label>Hora</label>
+                                    <input type="time" id="citaHora" required min="08:00" max="17:00">
+                                </div>
+                            </div>
+
+                            <div style="background: var(--background); border: 2px dashed var(--border); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                                <label style="color: var(--text-secondary);">Doctor Seleccionado</label>
+                                <div id="doctorSeleccionado" style="font-weight: 600; color: var(--primary); margin-top: 8px;">
+                                    Ninguno - Selecciona un doctor de la lista →
+                                </div>
+                            </div>
+
+                            <button type="button" class="btn btn-primary btn-full" onclick="crearCita()">
+                                Agendar Cita
                             </button>
                         </form>
-                        <div id="add-doctor-result" class="result-box" style="margin-top: 12px;">
-                            Completa el formulario para agregar un nuevo doctor
+
+                        <div id="citaResultado" class="result-box hidden"></div>
+                    </div>
+
+                    <!-- Doctores Disponibles -->
+                    <div class="card">
+                        <div class="card-header">
+                            <div class="card-icon">👨‍⚕️</div>
+                            <div>
+                                <div class="card-title">Doctores</div>
+                                <div class="card-subtitle">Especialistas disponibles</div>
+                            </div>
+                        </div>
+
+                        <div id="doctorsList" class="doctors-list">
+                            <div class="loading">
+                                <div class="spinner"></div>
+                                <span>Cargando doctores...</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Citas Agendadas -->
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-icon">📋</div>
+                        <div>
+                            <div class="card-title">Mis Citas</div>
+                            <div class="card-subtitle">Tus citas programadas</div>
                         </div>
                     </div>
 
-                    <!-- Lista de doctores -->
-                    <div>
-                        <h3 style="margin-bottom: 16px; color: var(--text-primary);">Doctores Registrados</h3>
-                        <div id="doctors-admin-container" style="max-height: 400px; overflow-y: auto;">
+                    <button class="btn btn-secondary" onclick="cargarCitas()" style="margin-bottom: 20px;">
+                        Actualizar Citas
+                    </button>
+
+                    <div id="citasList" class="appointments-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Cargando citas...</span>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div style="margin-top:12px; display:flex; justify-content:flex-end; gap:8px;">
-                <button class="btn" onclick="backToRole()">Volver</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal para editar cita -->
-    <div id="editModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Editar Cita</h2>
-                <button class="close-modal" onclick="closeEditModal()">&times;</button>
-            </div>
-            <form id="editForm">
-                <div class="form-group">
-                    <label>Paciente</label>
-                    <input type="text" id="editPaciente" placeholder="Nombre del paciente" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Motivo de consulta</label>
-                    <textarea id="editRazon" rows="3" placeholder="Describa el motivo de la consulta"
-                        required></textarea>
-                </div>
-
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Fecha</label>
-                        <input type="date" id="editFecha" required>
+            <!-- Panel para Doctores -->
+            <div class="hidden" id="doctorPanel">
+                <div class="card">
+                    <div class="card-header">
+                        <div class="card-icon">📋</div>
+                        <div>
+                            <div class="card-title">Citas Asignadas</div>
+                            <div class="card-subtitle">Gestiona las citas de tus pacientes</div>
+                        </div>
                     </div>
-                    <div class="form-group">
-                        <label>Hora</label>
-                        <input type="time" id="editHora" required>
+
+                    <button class="btn btn-secondary" onclick="cargarCitasDoctor()" style="margin-bottom: 20px;">
+                        Actualizar Citas
+                    </button>
+
+                    <div id="citasDoctorList" class="appointments-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Cargando citas...</span>
+                        </div>
                     </div>
                 </div>
-
-                <div class="form-group">
-                    <label>Doctor</label>
-                    <select id="editDoctor_id" required>
-                        <option value="">-- Seleccione un doctor --</option>
-                    </select>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button type="button" class="btn btn-outline" onclick="closeEditModal()" style="flex: 1;">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">
-                        Guardar Cambios
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- Modal para editar doctor -->
-    <div id="editDoctorModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2>Editar Doctor</h2>
-                <button class="close-modal" onclick="closeEditDoctorModal()">&times;</button>
             </div>
-            <form id="editDoctorForm">
-                <div class="form-group">
-                    <label>Nombre del Doctor</label>
-                    <input type="text" id="editDoctorNombre" placeholder="Nombre del doctor" required>
-                </div>
-
-                <div class="form-group">
-                    <label>Especialidad</label>
-                    <input type="text" id="editDoctorEspecialidad" placeholder="Especialidad" required>
-                </div>
-
-                <div style="display: flex; gap: 12px; margin-top: 24px;">
-                    <button type="button" class="btn btn-outline" onclick="closeEditDoctorModal()" style="flex: 1;">
-                        Cancelar
-                    </button>
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">
-                        Guardar Cambios
-                    </button>
-                </div>
-            </form>
         </div>
     </div>
 
     <script>
-        const BASE = 'http://localhost:3000/api';
-        let selectedDoctor = null;
+        const API_URL = 'http://localhost:3000/api';
+        let token = localStorage.getItem('token');
+        let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
 
-        // Función para mostrar loading
-        function showLoading(containerId, message = 'Cargando...') {
-            document.getElementById(containerId).innerHTML = `
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <span>${message}</span>
-                </div>
-            `;
-        }
-
-        // Inicializar: mostrar selección de rol
+        // Inicializar
         document.addEventListener('DOMContentLoaded', () => {
-            showRoleSelection();
-            // Pre-cargar doctores en segundo plano
-            cargarDoctores();
+            if (token && usuario) {
+                showMainContent();
+            } else {
+                showLogin();
+            }
         });
 
-        async function cargarDoctores() {
-            const container = document.getElementById('doctors-container');
-            const select = document.getElementById('doctor_id');
-
-            try {
-                showLoading('doctors-container', 'Cargando doctores...');
-
-                const res = await fetch(BASE + '/doctores');
-                const data = await res.json();
-
-                // Llenar select
-                select.innerHTML = '<option value="">-- Seleccione un doctor --</option>';
-
-                // Crear lista de doctores
-                let doctorsHtml = '<div class="doctors-list">';
-                data.forEach(d => {
-                    select.innerHTML += `<option value="${d.id}">${d.nombre} — ${d.especialidad}</option>`;
-                    doctorsHtml += `
-                        <div class="doctor-item" onclick="selectDoctor(${d.id}, '${d.nombre}', '${d.especialidad}')" id="doctor-${d.id}">
-                            <div class="doctor-name">${d.nombre}</div>
-                            <div class="doctor-specialty">${d.especialidad}</div>
-                        </div>
-                    `;
-                });
-                doctorsHtml += '</div>';
-
-                container.innerHTML = doctorsHtml;
-
-            } catch (error) {
-                container.innerHTML = `
-                    <div class="result-box error">
-                        Error al cargar doctores: ${error.message}
-                    </div>
-                `;
-            }
+        // Navegación
+        function showLogin() {
+            document.getElementById('loginView').classList.remove('hidden');
+            document.getElementById('registerView').classList.add('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
         }
 
-        function selectDoctor(id, nombre, especialidad) {
-            // Remover selección anterior
-            if (selectedDoctor) {
-                const prevSelected = document.getElementById('doctor-' + selectedDoctor);
-                if (prevSelected) {
-                    prevSelected.classList.remove('selected');
-                }
-            }
-
-            // Seleccionar nuevo doctor
-            selectedDoctor = id;
-            const newSelected = document.getElementById('doctor-' + id);
-            if (newSelected) {
-                newSelected.classList.add('selected');
-            }
-
-            // Actualizar select
-            document.getElementById('doctor_id').value = id;
+        function showRegister() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('registerView').classList.remove('hidden');
+            document.getElementById('mainContent').classList.add('hidden');
         }
 
-        async function agendarCita() {
-            const paciente = document.getElementById('paciente').value;
-            const razon = document.getElementById('razon').value;
-            const fecha = document.getElementById('fecha').value;
-            const horaInput = document.getElementById('hora').value;
-            const doctor_id = document.getElementById('doctor_id').value;
+        function showMainContent() {
+            document.getElementById('loginView').classList.add('hidden');
+            document.getElementById('registerView').classList.add('hidden');
+            document.getElementById('mainContent').classList.remove('hidden');
+            document.getElementById('headerUser').classList.remove('hidden');
+            document.getElementById('userEmail').textContent = usuario.email;
+            document.getElementById('userRole').textContent = usuario.rol.toUpperCase();
 
-            // Validaciones
-            if (!paciente || !razon || !fecha || !horaInput || !doctor_id) {
-                const resultBox = document.getElementById('res-cita');
-                resultBox.className = 'result-box error';
-                resultBox.innerHTML = 'Por favor complete todos los campos';
-                return;
-            }
-
-            const hora = horaInput + ':00';
-
-            const body = {
-                paciente,
-                razon,
-                fecha,
-                hora,
-                doctor_id: parseInt(doctor_id)
-            };
-
-            const resultBox = document.getElementById('res-cita');
-
-            try {
-                resultBox.className = 'result-box';
-                resultBox.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <span>Agendando cita...</span>
-                    </div>
-                `;
-
-                const res = await fetch(BASE + '/citas', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
-                });
-
-                const data = await res.json();
-
-                resultBox.className = 'result-box ' + (res.ok ? 'success' : 'error');
-
-                if (res.ok) {
-                    const cita = data.cita || data;
-                    resultBox.innerHTML = `
-                        <div class="success-card">
-                            <div class="title">Cita agendada exitosamente</div>
-                            <div class="details">
-                                <div><div class="label">Paciente</div><div>${cita.paciente}</div></div>
-                                <div><div class="label">Doctor ID</div><div>${cita.doctor_id}</div></div>
-                                <div><div class="label">Fecha</div><div>${cita.fecha}</div></div>
-                                <div><div class="label">Hora</div><div>${cita.hora}</div></div>
-                            </div>
-                            <div class="actions">
-                                <button class="btn btn-outline" onclick="copyCita('${cita.id}')">Copiar ID</button>
-                                <button class="btn btn-primary" onclick="closeResultBox()">OK</button>
-                            </div>
-                        </div>
-                    `;
-
-                    // Limpiar formulario
-                    document.getElementById('appointmentForm').reset();
-                    selectedDoctor = null;
-                    document.querySelectorAll('.doctor-item').forEach(item => {
-                        item.classList.remove('selected');
-                    });
-
-                    // Recargar citas
-                    cargarCitas();
-                } else {
-                    const mensajeError = data.mensaje || 'Ocurrió un error inesperado al agendar la cita. Por favor, intente de nuevo.';
-                    resultBox.innerHTML = `
-                        <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">No se pudo agendar la cita</div>
-                        <div style="color: var(--error); font-size: 14px; margin-top: 4px;">${mensajeError}</div>
-                    `;
-                }
-            } catch (e) {
-                resultBox.className = 'result-box error';
-                resultBox.innerHTML = `
-                    <div style="color: var(--error); font-weight: 600; margin-bottom: 8px;">Error de conexión</div>
-                    <pre style="margin: 0; font-family: inherit;">${e.message}</pre>
-                `;
-            }
-
-            // Mostrar/ocultar sección de rol y paneles
-            function showRoleSelection() {
-                document.getElementById('role-section').classList.remove('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-                document.getElementById('doctor-panel').classList.add('hidden');
-            }
-
-            function choosePatient() {
-                document.getElementById('role-section').classList.add('hidden');
-                document.getElementById('doctor-panel').classList.add('hidden');
-                document.getElementById('main-content').classList.remove('hidden');
-                // Asegurar que doctores y citas estén cargados
+            if (usuario.rol === 'admin') {
+                document.getElementById('adminPanel').classList.remove('hidden');
+                document.getElementById('pacientePanel').classList.add('hidden');
+                document.getElementById('doctorPanel').classList.add('hidden');
+                showAdminDoctors();
+            } else if (usuario.rol === 'doctor') {
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('pacientePanel').classList.add('hidden');
+                document.getElementById('doctorPanel').classList.remove('hidden');
+                cargarCitasDoctor();
+            } else {
+                document.getElementById('adminPanel').classList.add('hidden');
+                document.getElementById('pacientePanel').classList.remove('hidden');
+                document.getElementById('doctorPanel').classList.add('hidden');
                 cargarDoctores();
                 cargarCitas();
             }
+        }
 
-            function chooseDoctor() {
-                document.getElementById('role-section').classList.add('hidden');
-                document.getElementById('main-content').classList.add('hidden');
-                document.getElementById('doctor-panel').classList.remove('hidden');
-                document.getElementById('doctor-schedule').innerHTML = '';
+        // Auth
+        async function login(e) {
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.mensaje);
+
+                token = data.token;
+                usuario = data.usuario;
+                localStorage.setItem('token', token);
+                localStorage.setItem('usuario', JSON.stringify(usuario));
+
+                showMainContent();
+            } catch (err) {
+                alert('Error: ' + err.message);
             }
+        }
 
-            function backToRole() {
-                showRoleSelection();
+        async function registerPaciente(e) {
+            e.preventDefault();
+            const email = document.getElementById('regEmail').value;
+            const password = document.getElementById('regPassword').value;
+            const nombre = document.getElementById('regNombre').value;
+            const telefono = document.getElementById('regTelefono').value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/registro`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        email,
+                        password,
+                        rol: 'paciente',
+                        nombre,
+                        telefono
+                    })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) throw new Error(data.mensaje);
+
+                alert('¡Cuenta de paciente creada exitosamente! Ahora inicia sesión.');
+                showLogin();
+            } catch (err) {
+                alert('Error: ' + err.message);
             }
+        }
 
-            // Mostrar horario del doctor filtrando las citas por nombre del doctor
-            async function showDoctorSchedule(doctorName, specialty) {
-                const container = document.getElementById('doctor-schedule');
-                container.innerHTML = `<div class="loading"><div class="spinner"></div><span>Cargando horarios para ${doctorName}...</span></div>`;
-                try {
-                    const res = await fetch(BASE + '/citas');
-                    const data = await res.json();
-                    const citasDoctor = data.filter(c => c.doctor === doctorName || c.doctor === doctorName.replace(/^Dr\.\s*/, ''));
+        function logout() {
+            token = null;
+            usuario = null;
+            localStorage.removeItem('token');
+            localStorage.removeItem('usuario');
+            location.reload();
+        }
 
-                    if (citasDoctor.length === 0) {
-                        container.innerHTML = `
-                            <div class="result-box">
-                                No hay citas agendadas para <strong>${doctorName}</strong> (${specialty})
+        let doctorSeleccionadoId = null;
+        let doctorSeleccionadoNombre = null;
+
+        // Doctores
+        async function cargarDoctores() {
+            try {
+                const res = await fetch(`${API_URL}/doctores`);
+                const doctores = await res.json();
+
+                const container = document.getElementById('doctorsList');
+                container.innerHTML = doctores.length === 0
+                    ? '<p style="color: var(--text-muted); text-align: center;">No hay doctores disponibles</p>'
+                    : doctores.map(d => `
+                        <div class="doctor-item" onclick="selectDoctor(${d.id}, '${d.nombre}')">
+                            <div class="doctor-info">
+                                <div class="doctor-name">${d.nombre}</div>
+                                <div class="doctor-specialty">${d.especialidad}</div>
                             </div>
-                        `;
-                        return;
-                    }
+                        </div>
+                    `).join('');
+            } catch (err) {
+                console.error(err);
+            }
+        }
 
-                    let html = `<div class="appointments-list">`;
-                    citasDoctor.forEach(cita => {
-                        html += `
-                            <div class="appointment-card">
-                                <div class="appointment-header">
-                                    <span class="appointment-patient">${cita.paciente}</span>
-                                    <span class="appointment-datetime">${cita.fecha} ${cita.hora}</span>
-                                </div>
-                                <div class="appointment-reason">${cita.razon}</div>
-                            </div>
-                        `;
-                    });
-                    html += '</div>';
-                    container.innerHTML = html;
-                } catch (err) {
-                    container.innerHTML = `<div class="result-box error">Error al cargar horarios: ${err.message}</div>`;
+        function selectDoctor(id, nombre) {
+            doctorSeleccionadoId = id;
+            doctorSeleccionadoNombre = nombre;
+            
+            document.querySelectorAll('.doctor-item').forEach(el => el.classList.remove('selected'));
+            event.currentTarget.classList.add('selected');
+            
+            // Actualizar vista del doctor seleccionado
+            document.getElementById('doctorSeleccionado').innerHTML = 
+                `✅ ${nombre}`;
+            document.getElementById('doctorSeleccionado').style.color = 'var(--success)';
+        }
+
+        // Validar horario de atención
+        function validarHorario(fecha, hora) {
+            const fechaObj = new Date(fecha + 'T' + hora);
+            const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
+            const horaNum = parseInt(hora.split(':')[0]);
+            
+            // Domingo - Cerrado
+            if (diaSemana === 0) {
+                return { valido: false, mensaje: 'Los domingos estamos cerrados.' };
+            }
+            
+            // Sábado - 8 AM a 12 PM
+            if (diaSemana === 6) {
+                if (horaNum < 8 || horaNum >= 12) {
+                    return { valido: false, mensaje: 'Los sábados el horario es de 8:00 AM a 12:00 PM.' };
                 }
+            }
+            
+            // Lunes a Viernes - 8 AM a 5 PM (17:00)
+            if (diaSemana >= 1 && diaSemana <= 5) {
+                if (horaNum < 8 || horaNum >= 17) {
+                    return { valido: false, mensaje: 'El horario de lunes a viernes es de 8:00 AM a 5:00 PM.' };
+                }
+            }
+            
+            return { valido: true };
+        }
+
+        // Validar fecha seleccionada (no domingos)
+        function validarFechaSeleccionada() {
+            const fechaInput = document.getElementById('citaFecha');
+            const horaInput = document.getElementById('citaHora');
+            const fecha = fechaInput.value;
+            
+            if (!fecha) return;
+            
+            const fechaObj = new Date(fecha + 'T00:00:00');
+            const diaSemana = fechaObj.getDay();
+            
+            // Si es domingo (0), mostrar alerta y limpiar
+            if (diaSemana === 0) {
+                alert('Los domingos estamos cerrados. Por favor selecciona otro día.');
+                fechaInput.value = '';
+                return;
+            }
+            
+            // Ajustar hora máxima según el día
+            if (diaSemana === 6) {
+                // Sábado - hasta 12:00
+                horaInput.max = '11:00';
+            } else {
+                // Lunes a Viernes - hasta 17:00
+                horaInput.max = '16:00';
+            }
+        }
+
+        // Citas
+        async function crearCita() {
+            const razon = document.getElementById('citaRazon').value;
+            const fecha = document.getElementById('citaFecha').value;
+            const hora = document.getElementById('citaHora').value;
+
+            if (!doctorSeleccionadoId) {
+                alert('Por favor selecciona un doctor de la lista');
+                return;
+            }
+
+            // Validar horario
+            const validacionHorario = validarHorario(fecha, hora);
+            if (!validacionHorario.valido) {
+                const resultado = document.getElementById('citaResultado');
+                resultado.className = 'result-box error';
+                resultado.textContent = validacionHorario.mensaje;
+                resultado.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/citas`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ 
+                        razon, 
+                        fecha, 
+                        hora, 
+                        doctor_id: doctorSeleccionadoId 
+                    })
+                });
+
+                const data = await res.json();
+                const resultado = document.getElementById('citaResultado');
+
+                if (!res.ok) throw new Error(data.mensaje);
+
+                resultado.className = 'result-box success';
+                resultado.textContent = '¡Cita creada exitosamente!';
+                resultado.classList.remove('hidden');
+                
+                document.getElementById('appointmentForm').reset();
+                cargarCitas();
+            } catch (err) {
+                const resultado = document.getElementById('citaResultado');
+                resultado.className = 'result-box error';
+                resultado.textContent = 'Error: ' + err.message;
+                resultado.classList.remove('hidden');
             }
         }
 
         async function cargarCitas() {
-            const container = document.getElementById('citas-container');
-
             try {
-                container.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <span>Cargando citas...</span>
-                    </div>
-                `;
+                const res = await fetch(`${API_URL}/citas`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-                const res = await fetch(BASE + '/citas');
-                const data = await res.json();
+                const citas = await res.json();
+                const container = document.getElementById('citasList');
 
-                if (data.length === 0) {
-                    container.innerHTML = `
-                        <div class="result-box">
-                            No hay citas agendadas actualmente
-                        </div>
-                    `;
+                if (citas.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No tienes citas agendadas</p>';
                     return;
                 }
 
-                let citasHtml = '<div class="appointments-list">';
-
-                data.forEach(cita => {
-                    citasHtml += `
-                        <div class="appointment-card">
-                            <div class="appointment-header">
-                                <span class="appointment-patient">${cita.paciente}</span>
-                                <span class="appointment-datetime">${cita.fecha} ${cita.hora}</span>
-                            </div>
-                            <div class="appointment-reason">
-                                ${cita.razon}
-                            </div>
-                            <div class="appointment-doctor">
-                                ${cita.doctor} - ${cita.especialidad}
-                            </div>
+                container.innerHTML = citas.map(c => `
+                    <div class="appointment-card">
+                        <div class="appointment-header">
+                            <span class="appointment-patient">${c.paciente_nombre || 'Paciente'}</span>
+                            <span class="appointment-datetime">${c.fecha} ${c.hora}</span>
+                        </div>
+                        <div class="appointment-reason">${c.razon}</div>
+                        <div class="appointment-doctor">
+                            ${c.doctor_nombre ? `Dr. ${c.doctor_nombre} - ${c.especialidad}` : ''}
+                        </div>
+                        ${usuario.rol === 'admin' || usuario.rol === 'paciente' ? `
                             <div class="appointment-actions">
-                                <button class="btn-edit" onclick="openEditModal(${cita.id}, '${cita.paciente}', '${cita.razon}', '${cita.fecha}', '${cita.hora}', ${cita.doctor_id})">
-                                    Editar
-                                </button>
-                                <button class="btn-delete" onclick="eliminarCita(${cita.id})">
-                                    Cancelar Cita
-                                </button>
+                                <button class="btn btn-danger btn-sm" onclick="cancelarCita(${c.id})">Cancelar</button>
                             </div>
-                        </div>
-                    `;
-                });
-
-                citasHtml += '</div>';
-                container.innerHTML = citasHtml;
-
-            } catch (error) {
-                container.innerHTML = `
-                    <div class="result-box error">
-                        Error al cargar citas: ${error.message}
+                        ` : ''}
                     </div>
-                `;
-            }
-        }
-
-        // Cerrar / restaurar caja de resultado
-        function closeResultBox() {
-            const resultBox = document.getElementById('res-cita');
-            resultBox.className = 'result-box';
-            resultBox.innerHTML = 'Complete el formulario para agendar una cita';
-        }
-
-        // Copiar ID de la cita al portapapeles
-        function copyCita(id) {
-            if (!navigator.clipboard) {
-                alert('Portapapeles no soportado');
-                return;
-            }
-            navigator.clipboard.writeText(String(id)).then(() => {
-                const prev = document.getElementById('res-cita').innerHTML;
-                const resultBox = document.getElementById('res-cita');
-                resultBox.innerHTML = '<div class="success-card"><div class="title">ID copiado al portapapeles</div></div>';
-                setTimeout(() => { resultBox.innerHTML = prev; }, 1500);
-            }).catch(() => alert('No se pudo copiar el ID'));
-        }
-
-        // Global: mostrar/ocultar sección de rol y paneles (sobrescribe versiones anidadas)
-        function showRoleSelection() {
-            document.getElementById('role-section').classList.remove('hidden');
-            document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('doctor-panel').classList.add('hidden');
-        }
-
-        function choosePatient() {
-            document.getElementById('role-section').classList.add('hidden');
-            document.getElementById('doctor-panel').classList.add('hidden');
-            document.getElementById('main-content').classList.remove('hidden');
-            // Asegurar que doctores y citas estén cargados
-            cargarDoctores();
-            cargarCitas();
-        }
-
-        function chooseDoctor() {
-            document.getElementById('role-section').classList.add('hidden');
-            document.getElementById('main-content').classList.add('hidden');
-            document.getElementById('doctor-panel').classList.remove('hidden');
-            document.getElementById('doctor-schedule').innerHTML = '';
-            // Cargar doctores inmediatamente
-            setTimeout(() => {
-                cargarDoctoresAdmin();
-            }, 100);
-        }
-
-        function backToRole() {
-            showRoleSelection();
-        }
-
-        // Mostrar horario del doctor filtrando las citas por nombre del doctor
-        async function showDoctorSchedule(doctorName, specialty) {
-            const container = document.getElementById('doctor-schedule');
-            container.innerHTML = `<div class="loading"><div class="spinner"></div><span>Cargando horarios para ${doctorName}...</span></div>`;
-            try {
-                const res = await fetch(BASE + '/citas');
-                const data = await res.json();
-                const citasDoctor = data.filter(c => c.doctor === doctorName || c.doctor === doctorName.replace(/^Dr\./, '').trim());
-
-                if (citasDoctor.length === 0) {
-                    container.innerHTML = `
-                        <div class="result-box">
-                            No hay citas agendadas para <strong>${doctorName}</strong> (${specialty})
-                        </div>
-                    `;
-                    return;
-                }
-
-                let html = `<div class="appointments-list">`;
-                citasDoctor.forEach(cita => {
-                    html += `
-                        <div class="appointment-card">
-                            <div class="appointment-header">
-                                <span class="appointment-patient">${cita.paciente}</span>
-                                <span class="appointment-datetime">${cita.fecha} ${cita.hora}</span>
-                            </div>
-                            <div class="appointment-reason">${cita.razon}</div>
-                        </div>
-                    `;
-                });
-                html += '</div>';
-                container.innerHTML = html;
+                `).join('');
             } catch (err) {
-                container.innerHTML = `<div class="result-box error">Error al cargar horarios: ${err.message}</div>`;
+                console.error(err);
             }
         }
 
-        // Cargar citas al iniciar
-        cargarCitas();
-
-        // Variables globales para el modal
-        let citaEnEdicion = null;
-
-        // Abrir modal de edición
-        async function openEditModal(id, paciente, razon, fecha, hora, doctorId) {
-            citaEnEdicion = id;
-            document.getElementById('editPaciente').value = paciente;
-            document.getElementById('editRazon').value = razon;
-            document.getElementById('editFecha').value = fecha;
-            document.getElementById('editHora').value = hora;
-            document.getElementById('editDoctor_id').value = doctorId;
-
-            // Cargar doctores en el select del modal si no está hecho
-            const selectEdit = document.getElementById('editDoctor_id');
-            if (selectEdit.children.length === 1) { // Solo tiene la opción por defecto
-                try {
-                    const res = await fetch(BASE + '/doctores');
-                    const doctores = await res.json();
-                    selectEdit.innerHTML = '';
-                    doctores.forEach(d => {
-                        const option = document.createElement('option');
-                        option.value = d.id;
-                        option.textContent = `${d.nombre} — ${d.especialidad}`;
-                        selectEdit.appendChild(option);
-                    });
-                    selectEdit.value = doctorId;
-                } catch (error) {
-                    console.error('Error cargando doctores:', error);
-                }
-            }
-
-            document.getElementById('editModal').style.display = 'block';
-        }
-
-        // Cerrar modal de edición
-        function closeEditModal() {
-            document.getElementById('editModal').style.display = 'none';
-            citaEnEdicion = null;
-            document.getElementById('editForm').reset();
-        }
-
-        // Cerrar modal al hacer click fuera de él
-        window.onclick = function (event) {
-            const modal = document.getElementById('editModal');
-            if (event.target == modal) {
-                closeEditModal();
-            }
-        }
-
-        // Manejar envío del formulario de edición
-        document.getElementById('editForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const paciente = document.getElementById('editPaciente').value;
-            const razon = document.getElementById('editRazon').value;
-            const fecha = document.getElementById('editFecha').value;
-            const horaInput = document.getElementById('editHora').value;
-            const doctor_id = document.getElementById('editDoctor_id').value;
-
-            if (!paciente || !razon || !fecha || !horaInput || !doctor_id) {
-                alert('Por favor complete todos los campos');
-                return;
-            }
-
-            const hora = horaInput + ':00';
-
-            const body = {
-                paciente,
-                razon,
-                fecha,
-                hora,
-                doctor_id: parseInt(doctor_id)
-            };
+        async function cancelarCita(id) {
+            if (!confirm('¿Estás seguro de cancelar esta cita?')) return;
 
             try {
-                const res = await fetch(`${BASE}/citas/${citaEnEdicion}`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(body)
+                const res = await fetch(`${API_URL}/citas/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
                 });
 
-                const data = await res.json();
-
-                if (res.ok) {
-                    alert('Cita actualizada exitosamente');
-                    closeEditModal();
-                    cargarCitas();
-                } else {
-                    alert('Error: ' + data.mensaje);
-                }
-            } catch (error) {
-                alert('Error de conexión: ' + error.message);
-            }
-        });
-
-        // Eliminar cita
-        async function eliminarCita(id) {
-            if (!confirm('¿Está seguro de que desea eliminar esta cita?')) {
-                return;
-            }
-
-            try {
-                const res = await fetch(`${BASE}/citas/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    alert('Cita cancelada exitosamente');
-                    cargarCitas();
-                } else {
-                    alert('Error: ' + data.mensaje);
-                }
-            } catch (error) {
-                alert('Error de conexión: ' + error.message);
+                if (!res.ok) throw new Error('No se pudo cancelar');
+                cargarCitas();
+            } catch (err) {
+                alert(err.message);
             }
         }
 
-        // ========== GESTIÓN DE DOCTORES ==========
-
-        // Variables globales para edición de doctor
-        let doctorEnEdicion = null;
-
-        // Cargar doctores en la sección de administración
-        async function cargarDoctoresAdmin() {
-            const container = document.getElementById('doctors-admin-container');
-
+        // Funciones para Doctor
+        async function cargarCitasDoctor() {
             try {
-                container.innerHTML = `
-                    <div class="loading">
-                        <div class="spinner"></div>
-                        <span>Cargando doctores...</span>
-                    </div>
-                `;
+                const res = await fetch(`${API_URL}/citas`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
 
-                const res = await fetch(BASE + '/doctores');
-                const data = await res.json();
+                const citas = await res.json();
+                const container = document.getElementById('citasDoctorList');
 
-                if (data.length === 0) {
-                    container.innerHTML = '<div class="result-box">No hay doctores registrados</div>';
+                if (citas.length === 0) {
+                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No tienes citas asignadas</p>';
                     return;
                 }
 
-                let doctorsHtml = '';
-                data.forEach(doctor => {
-                    doctorsHtml += `
-                        <div class="doctor-row">
-                            <div class="doctor-info">
-                                <div class="name">${doctor.nombre}</div>
-                                <div class="specialty">${doctor.especialidad}</div>
-                            </div>
-                            <div class="doctor-actions">
-                                <button class="btn-sm btn-sm-edit" onclick="openEditDoctorModal(${doctor.id}, '${doctor.nombre}', '${doctor.especialidad}')">
-                                    Editar
-                                </button>
-                                <button class="btn-sm btn-sm-delete" onclick="eliminarDoctor(${doctor.id})">
-                                    Eliminar
-                                </button>
-                            </div>
+                container.innerHTML = citas.map(c => `
+                    <div class="appointment-card">
+                        <div class="appointment-header">
+                            <span class="appointment-patient">${c.paciente_nombre || 'Paciente'}</span>
+                            <span class="appointment-datetime">${c.fecha} ${c.hora}</span>
                         </div>
-                    `;
-                });
-
-                container.innerHTML = doctorsHtml;
-
-            } catch (error) {
-                container.innerHTML = `
-                    <div class="result-box error">
-                        Error al cargar doctores: ${error.message}
+                        <div class="appointment-reason">${c.razon}</div>
+                        <div class="appointment-doctor">
+                            Estado: <strong>${c.estado || 'pendiente'}</strong>
+                        </div>
+                        <div class="appointment-actions">
+                            ${c.estado === 'pendiente' ? `
+                                <button class="btn btn-secondary btn-sm" onclick="actualizarEstadoCita(${c.id}, 'confirmada')">Aceptar</button>
+                                <button class="btn btn-danger btn-sm" onclick="actualizarEstadoCita(${c.id}, 'cancelada')">Cancelar</button>
+                            ` : ''}
+                            ${c.estado === 'confirmada' ? `
+                                <button class="btn btn-success btn-sm" onclick="actualizarEstadoCita(${c.id}, 'completada')">Finalizar</button>
+                            ` : ''}
+                            ${c.estado === 'cancelada' || c.estado === 'completada' ? `
+                                <span style="color: var(--text-muted); font-size: 13px;">Cita ${c.estado}</span>
+                            ` : ''}
+                        </div>
                     </div>
-                `;
+                `).join('');
+            } catch (err) {
+                console.error(err);
             }
         }
 
-        // Abrir modal para editar doctor
-        async function openEditDoctorModal(id, nombre, especialidad) {
-            doctorEnEdicion = id;
-            document.getElementById('editDoctorNombre').value = nombre;
-            document.getElementById('editDoctorEspecialidad').value = especialidad;
-            document.getElementById('editDoctorModal').style.display = 'block';
-        }
-
-        // Cerrar modal de editar doctor
-        function closeEditDoctorModal() {
-            document.getElementById('editDoctorModal').style.display = 'none';
-            doctorEnEdicion = null;
-            document.getElementById('editDoctorForm').reset();
-        }
-
-        // Manejar formulario de edición de doctor
-        document.getElementById('editDoctorForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
-
-            const nombre = document.getElementById('editDoctorNombre').value;
-            const especialidad = document.getElementById('editDoctorEspecialidad').value;
-
-            if (!nombre || !especialidad) {
-                alert('Por favor complete todos los campos');
-                return;
-            }
-
+        async function actualizarEstadoCita(id, estado) {
             try {
-                const res = await fetch(`${BASE}/doctores/${doctorEnEdicion}`, {
+                const res = await fetch(`${API_URL}/citas/${id}/estado`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, especialidad })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ estado })
                 });
 
-                const data = await res.json();
-
-                if (res.ok) {
-                    alert('Doctor actualizado exitosamente');
-                    closeEditDoctorModal();
-                    cargarDoctoresAdmin();
-                    cargarDoctores(); // Actualizar el select de doctores también
-                } else {
-                    alert('Error: ' + data.mensaje);
-                }
-            } catch (error) {
-                alert('Error de conexión: ' + error.message);
-            }
-        });
-
-        // Eliminar doctor
-        async function eliminarDoctor(id) {
-            if (!confirm('¿Está seguro de que desea eliminar este doctor?')) {
-                return;
-            }
-
-            try {
-                const res = await fetch(`${BASE}/doctores/${id}`, {
-                    method: 'DELETE'
-                });
-
-                const data = await res.json();
-
-                if (res.ok) {
-                    alert('Doctor eliminado exitosamente');
-                    cargarDoctoresAdmin();
-                    cargarDoctores();
-                } else {
-                    alert('Error: ' + data.mensaje);
-                }
-            } catch (error) {
-                alert('Error de conexión: ' + error.message);
+                if (!res.ok) throw new Error('No se pudo actualizar el estado');
+                cargarCitasDoctor();
+            } catch (err) {
+                alert(err.message);
             }
         }
 
-        // Manejar formulario de agregar doctor
-        document.getElementById('addDoctorForm').addEventListener('submit', async function (e) {
-            e.preventDefault();
+        // Admin
+        async function showAdminDoctors() {
+            document.getElementById('adminDoctorsView').classList.toggle('hidden');
+            document.getElementById('adminPatientsView').classList.add('hidden');
+            cargarAdminDoctors();
+        }
 
-            const nombre = document.getElementById('addDoctorNombre').value;
-            const especialidad = document.getElementById('addDoctorEspecialidad').value;
+        async function showAdminPatients() {
+            document.getElementById('adminPatientsView').classList.toggle('hidden');
+            document.getElementById('adminDoctorsView').classList.add('hidden');
+            cargarAdminPatients();
+        }
 
-            if (!nombre || !especialidad) {
-                alert('Por favor complete todos los campos');
-                return;
+        async function cargarAdminDoctors() {
+            try {
+                const res = await fetch(`${API_URL}/admin/doctores`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const doctores = await res.json();
+
+                document.getElementById('adminDoctorsList').innerHTML = doctores.map(d => `
+                    <div class="admin-row">
+                        <div>
+                            <strong>${d.nombre}</strong> - ${d.especialidad}
+                            <br><small>${d.email}</small>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarDoctor(${d.id})">Eliminar</button>
+                    </div>
+                `).join('') || '<p>No hay doctores registrados</p>';
+            } catch (err) {
+                console.error(err);
             }
+        }
+
+        async function cargarAdminPatients() {
+            try {
+                const res = await fetch(`${API_URL}/admin/pacientes`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const pacientes = await res.json();
+
+                document.getElementById('adminPatientsList').innerHTML = pacientes.map(p => `
+                    <div class="admin-row">
+                        <div>
+                            <strong>${p.nombre}</strong>
+                            <br><small>${p.email} ${p.telefono ? '· ' + p.telefono : ''}</small>
+                        </div>
+                        <button class="btn btn-danger btn-sm" onclick="eliminarPaciente(${p.id})">Eliminar</button>
+                    </div>
+                `).join('') || '<p>No hay pacientes registrados</p>';
+            } catch (err) {
+                console.error(err);
+            }
+        }
+
+        async function adminCreateDoctor(e) {
+            e.preventDefault();
+            const email = document.getElementById('adminDocEmail').value;
+            const password = document.getElementById('adminDocPassword').value;
+            const nombre = document.getElementById('adminDocNombre').value;
+            const especialidad = document.getElementById('adminDocEspecialidad').value;
 
             try {
-                const res = await fetch(BASE + '/doctores', {
+                const res = await fetch(`${API_URL}/admin/doctores`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nombre, especialidad })
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email, password, nombre, especialidad })
                 });
 
                 const data = await res.json();
-                const resultBox = document.getElementById('add-doctor-result');
+                if (!res.ok) throw new Error(data.mensaje);
 
-                if (res.ok) {
-                    resultBox.className = 'result-box success';
-                    resultBox.innerHTML = `Doctor "${data.doctor.nombre}" agregado exitosamente`;
-                    document.getElementById('addDoctorForm').reset();
-                    cargarDoctoresAdmin();
-                    cargarDoctores();
-                    setTimeout(() => {
-                        resultBox.className = 'result-box';
-                        resultBox.innerHTML = 'Completa el formulario para agregar un nuevo doctor';
-                    }, 3000);
-                } else {
-                    resultBox.className = 'result-box error';
-                    resultBox.innerHTML = `Error: ${data.mensaje}`;
-                }
-            } catch (error) {
-                const resultBox = document.getElementById('add-doctor-result');
-                resultBox.className = 'result-box error';
-                resultBox.innerHTML = `Error de conexión: ${error.message}`;
+                alert('Doctor creado exitosamente');
+                e.target.reset();
+                cargarAdminDoctors();
+            } catch (err) {
+                alert(err.message);
             }
-        });
+        }
 
-        // Cerrar modal al hacer click fuera (para doctor modal)
-        window.addEventListener('click', function (event) {
-            const modal = document.getElementById('editDoctorModal');
-            if (event.target == modal) {
-                closeEditDoctorModal();
+        async function eliminarDoctor(id) {
+            if (!confirm('¿Eliminar este doctor?')) return;
+            try {
+                await fetch(`${API_URL}/admin/doctores/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                cargarAdminDoctors();
+            } catch (err) {
+                alert('No se pudo eliminar');
             }
-        });
+        }
+
+        async function eliminarPaciente(id) {
+            if (!confirm('¿Eliminar este paciente?')) return;
+            try {
+                await fetch(`${API_URL}/admin/pacientes/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                cargarAdminPatients();
+            } catch (err) {
+                alert('No se pudo eliminar');
+            }
+        }
     </script>
 </body>
-
 </html>

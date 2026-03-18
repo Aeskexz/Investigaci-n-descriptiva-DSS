@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 
+const authRoutes = require('./routes/authRoutes');
+const adminRoutes = require('./routes/adminRoutes');
 const citasRoutes = require('./routes/citasRoutes');
 const doctoresRoutes = require('./routes/doctoresRoutes');
 
@@ -18,6 +20,9 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+// Rutas de la API
+app.use('/api/auth', authRoutes);
+app.use('/api/admin', adminRoutes);
 app.use('/api/citas', citasRoutes);
 app.use('/api/doctores', doctoresRoutes);
 

@@ -2,9 +2,7 @@ const express = require('express');
 const router = express.Router();
 const doctoresController = require('../controllers/doctoresController');
 
+// Ruta pública para ver doctores disponibles
 router.get('/', doctoresController.obtenerDoctores);
-router.post('/', doctoresController.crearDoctor);
-router.put('/:id', doctoresController.actualizarDoctor);
-router.delete('/:id', doctoresController.eliminarDoctor);
 
 module.exports = router;
