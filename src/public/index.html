@@ -273,7 +273,7 @@
             color: var(--text-primary);
         }
 
-        /* Main Content */
+       
         .grid {
             display: grid;
             grid-template-columns: 1.2fr 0.8fr;
@@ -326,7 +326,7 @@
             gap: 16px;
         }
 
-        /* Doctors List */
+        
         .doctors-list {
             display: flex;
             flex-direction: column;
@@ -369,7 +369,7 @@
             color: var(--text-muted);
         }
 
-        /* Appointments */
+        
         .appointments-list {
             display: flex;
             flex-direction: column;
@@ -425,7 +425,7 @@
             justify-content: flex-end;
         }
 
-        /* Admin Panel */
+       
         .admin-panel {
             margin-bottom: 24px;
             padding: 20px;
@@ -449,7 +449,7 @@
             margin-bottom: 8px;
         }
 
-        /* Result Box */
+        
         .result-box {
             margin-top: 24px;
             padding: 16px;
@@ -468,7 +468,7 @@
             background: rgba(239, 68, 68, 0.05);
         }
 
-        /* Loading */
+        
         .loading {
             display: flex;
             align-items: center;
@@ -493,7 +493,7 @@
 
         .hidden { display: none; }
 
-        /* Responsive */
+        
         @media (max-width: 768px) {
             .grid { grid-template-columns: 1fr; }
             .header { padding: 24px; }
@@ -504,7 +504,7 @@
 
 <body>
     <div class="app">
-        <!-- Header -->
+        
         <header class="header" id="header">
             <h1>🏥 Citas Médicas</h1>
             <p class="subtitle">Sistema de Gestión de Citas</p>
@@ -519,7 +519,7 @@
             </div>
         </header>
 
-        <!-- Login Form -->
+        
         <div class="auth-container" id="loginView">
             <div class="auth-card">
                 <h2>Iniciar Sesión</h2>
@@ -543,7 +543,7 @@
             </div>
         </div>
 
-        <!-- Register Form -->
+        
         <div class="auth-container hidden" id="registerView">
             <div class="auth-card">
                 <h2>Crear Cuenta - Paciente</h2>
@@ -575,9 +575,9 @@
             </div>
         </div>
 
-        <!-- Main Content -->
+        
         <div class="hidden" id="mainContent">
-            <!-- Admin Panel -->
+            
             <div class="admin-panel hidden" id="adminPanel">
                 <h3>🔧 Panel de Administrador</h3>
                 
@@ -606,10 +606,10 @@
                 </div>
             </div>
 
-            <!-- Panel para Pacientes -->
+            
             <div class="hidden" id="pacientePanel">
                 <div class="grid">
-                    <!-- Agendar Cita -->
+                    
                     <div class="card">
                         <div class="card-header">
                             <div class="card-icon">📅</div>
@@ -669,7 +669,7 @@
                         <div id="citaResultado" class="result-box hidden"></div>
                     </div>
 
-                    <!-- Doctores Disponibles -->
+                    
                     <div class="card">
                         <div class="card-header">
                             <div class="card-icon">👨‍⚕️</div>
@@ -688,7 +688,7 @@
                     </div>
                 </div>
 
-                <!-- Citas Agendadas -->
+                
                 <div class="card" style="margin-top: 24px;">
                     <div class="card-header">
                         <div class="card-icon">📋</div>
@@ -711,7 +711,7 @@
                 </div>
             </div>
 
-            <!-- Panel para Doctores -->
+            
             <div class="hidden" id="doctorPanel">
                 <div class="card">
                     <div class="card-header">
@@ -742,7 +742,7 @@
         let token = localStorage.getItem('token');
         let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
 
-        // Inicializar
+        
         document.addEventListener('DOMContentLoaded', () => {
             if (token && usuario) {
                 showMainContent();
@@ -751,7 +751,7 @@
             }
         });
 
-        // Navegación
+        
         function showLogin() {
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('registerView').classList.add('hidden');
@@ -791,7 +791,7 @@
             }
         }
 
-        // Auth
+        
         async function login(e) {
             e.preventDefault();
             const email = document.getElementById('loginEmail').value;
@@ -861,7 +861,7 @@
         let doctorSeleccionadoId = null;
         let doctorSeleccionadoNombre = null;
 
-        // Doctores
+        
         async function cargarDoctores() {
             try {
                 const res = await fetch(`${API_URL}/doctores`);
@@ -890,31 +890,31 @@
             document.querySelectorAll('.doctor-item').forEach(el => el.classList.remove('selected'));
             event.currentTarget.classList.add('selected');
             
-            // Actualizar vista del doctor seleccionado
+            
             document.getElementById('doctorSeleccionado').innerHTML = 
                 `✅ ${nombre}`;
             document.getElementById('doctorSeleccionado').style.color = 'var(--success)';
         }
 
-        // Validar horario de atención
+        
         function validarHorario(fecha, hora) {
             const fechaObj = new Date(fecha + 'T' + hora);
             const diaSemana = fechaObj.getDay(); // 0 = Domingo, 6 = Sábado
             const horaNum = parseInt(hora.split(':')[0]);
             
-            // Domingo - Cerrado
+            
             if (diaSemana === 0) {
                 return { valido: false, mensaje: 'Los domingos estamos cerrados.' };
             }
             
-            // Sábado - 8 AM a 12 PM
+            
             if (diaSemana === 6) {
                 if (horaNum < 8 || horaNum >= 12) {
                     return { valido: false, mensaje: 'Los sábados el horario es de 8:00 AM a 12:00 PM.' };
                 }
             }
             
-            // Lunes a Viernes - 8 AM a 5 PM (17:00)
+            
             if (diaSemana >= 1 && diaSemana <= 5) {
                 if (horaNum < 8 || horaNum >= 17) {
                     return { valido: false, mensaje: 'El horario de lunes a viernes es de 8:00 AM a 5:00 PM.' };
@@ -924,7 +924,7 @@
             return { valido: true };
         }
 
-        // Validar fecha seleccionada (no domingos)
+        
         function validarFechaSeleccionada() {
             const fechaInput = document.getElementById('citaFecha');
             const horaInput = document.getElementById('citaHora');
@@ -935,24 +935,24 @@
             const fechaObj = new Date(fecha + 'T00:00:00');
             const diaSemana = fechaObj.getDay();
             
-            // Si es domingo (0), mostrar alerta y limpiar
+            
             if (diaSemana === 0) {
                 alert('Los domingos estamos cerrados. Por favor selecciona otro día.');
                 fechaInput.value = '';
                 return;
             }
             
-            // Ajustar hora máxima según el día
+            
             if (diaSemana === 6) {
-                // Sábado - hasta 12:00
+                
                 horaInput.max = '11:00';
             } else {
-                // Lunes a Viernes - hasta 17:00
+                
                 horaInput.max = '16:00';
             }
         }
 
-        // Citas
+        
         async function crearCita() {
             const razon = document.getElementById('citaRazon').value;
             const fecha = document.getElementById('citaFecha').value;
@@ -963,7 +963,7 @@
                 return;
             }
 
-            // Validar horario
+            
             const validacionHorario = validarHorario(fecha, hora);
             if (!validacionHorario.valido) {
                 const resultado = document.getElementById('citaResultado');
@@ -1059,7 +1059,7 @@
             }
         }
 
-        // Funciones para Doctor
+        
         async function cargarCitasDoctor() {
             try {
                 const res = await fetch(`${API_URL}/citas`, {
@@ -1121,7 +1121,7 @@
             }
         }
 
-        // Admin
+        
         async function showAdminDoctors() {
             document.getElementById('adminDoctorsView').classList.toggle('hidden');
             document.getElementById('adminPatientsView').classList.add('hidden');
