@@ -7,7 +7,7 @@ const { verificarToken, esAdmin } = require('../middleware/auth');
 router.use(verificarToken);
 router.use(esAdmin);
 
-// Rutas de administración
+
 router.get('/usuarios', adminController.obtenerUsuarios);
 router.get('/doctores', adminController.obtenerDoctores);
 router.post('/doctores', adminController.crearDoctor);
