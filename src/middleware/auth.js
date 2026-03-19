@@ -3,12 +3,10 @@ const db = require('../db');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
-/**
- * Middleware para verificar token JWT
- */
+
 const verificarToken = async (req, res, next) => {
     try {
-        // Obtener token del header
+        
         const authHeader = req.headers.authorization;
         
         if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -17,10 +15,9 @@ const verificarToken = async (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
 
-        // Verificar token
         const decoded = jwt.verify(token, JWT_SECRET);
 
-        // Verificar que el usuario existe
+       
         const [usuarios] = await db.query(
             'SELECT id, email, rol FROM usuarios WHERE id = ?',
             [decoded.id]
@@ -30,7 +27,7 @@ const verificarToken = async (req, res, next) => {
             return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        // Adjuntar información del usuario al request
+        
         req.usuario = usuarios[0];
         next();
 
@@ -46,9 +43,8 @@ const verificarToken = async (req, res, next) => {
     }
 };
 
-/**
- * Middleware para verificar que el usuario sea admin
- */
+
+
 const esAdmin = (req, res, next) => {
     if (req.usuario.rol !== 'admin') {
         return res.status(403).json({ mensaje: 'Acceso denegado. Se requiere rol de administrador.' });
@@ -56,9 +52,7 @@ const esAdmin = (req, res, next) => {
     next();
 };
 
-/**
- * Middleware para verificar que el usuario sea doctor
- */
+
 const esDoctor = (req, res, next) => {
     if (req.usuario.rol !== 'doctor') {
         return res.status(403).json({ mensaje: 'Acceso denegado. Se requiere rol de doctor.' });
@@ -66,9 +60,7 @@ const esDoctor = (req, res, next) => {
     next();
 };
 
-/**
- * Middleware para verificar que el usuario sea paciente
- */
+
 const esPaciente = (req, res, next) => {
     if (req.usuario.rol !== 'paciente') {
         return res.status(403).json({ mensaje: 'Acceso denegado. Se requiere rol de paciente.' });

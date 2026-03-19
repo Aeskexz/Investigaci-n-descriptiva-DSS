@@ -3,7 +3,7 @@ const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { verificarToken, esAdmin } = require('../middleware/auth');
 
-// Todas las rutas requieren autenticación y rol de admin
+
 router.use(verificarToken);
 router.use(esAdmin);
 
