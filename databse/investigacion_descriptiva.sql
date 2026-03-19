@@ -17,15 +17,7 @@ SET time_zone = "+00:00";
 /*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!40101 SET NAMES utf8mb4 */;
 
---
--- Base de datos: `investigacion_descriptiva`
---
 
--- --------------------------------------------------------
-
---
--- Estructura de tabla para la tabla `citas`
---
 
 CREATE TABLE `citas` (
   `id` int(11) NOT NULL,
@@ -36,9 +28,7 @@ CREATE TABLE `citas` (
   `doctor_id` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `citas`
---
+
 
 INSERT INTO `citas` (`id`, `paciente`, `razon`, `fecha`, `hora`, `doctor_id`) VALUES
 (1, 'carlos hernandez', 'mal estar fisico', '2026-02-20', '12:24:00', 1),
@@ -49,11 +39,7 @@ INSERT INTO `citas` (`id`, `paciente`, `razon`, `fecha`, `hora`, `doctor_id`) VA
 (7, 'Carlos Rivera', 'nose', '2026-02-25', '17:26:00', 2),
 (8, 'asd', 'pediatria', '2026-02-25', '16:33:00', 1);
 
--- --------------------------------------------------------
 
---
--- Estructura de tabla para la tabla `doctores`
---
 
 CREATE TABLE `doctores` (
   `id` int(11) NOT NULL,
@@ -61,55 +47,31 @@ CREATE TABLE `doctores` (
   `especialidad` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
---
--- Volcado de datos para la tabla `doctores`
---
+
 
 INSERT INTO `doctores` (`id`, `nombre`, `especialidad`) VALUES
 (1, 'Dr. Carlos Perez', 'Medicina General'),
 (2, 'Dra. Ana Lopez', 'Pediatria'),
 (3, 'Dr. Miguel Torres', 'Cardiologia');
 
---
--- Índices para tablas volcadas
---
 
---
--- Indices de la tabla `citas`
---
 ALTER TABLE `citas`
   ADD PRIMARY KEY (`id`),
   ADD KEY `doctor_id` (`doctor_id`);
 
---
--- Indices de la tabla `doctores`
---
+
 ALTER TABLE `doctores`
   ADD PRIMARY KEY (`id`);
 
---
--- AUTO_INCREMENT de las tablas volcadas
---
 
---
--- AUTO_INCREMENT de la tabla `citas`
---
 ALTER TABLE `citas`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
---
--- AUTO_INCREMENT de la tabla `doctores`
---
+
 ALTER TABLE `doctores`
   MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
 
---
--- Restricciones para tablas volcadas
---
 
---
--- Filtros para la tabla `citas`
---
 ALTER TABLE `citas`
   ADD CONSTRAINT `citas_ibfk_1` FOREIGN KEY (`doctor_id`) REFERENCES `doctores` (`id`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
