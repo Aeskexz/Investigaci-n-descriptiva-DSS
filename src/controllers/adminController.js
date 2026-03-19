@@ -1,9 +1,7 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
 
-/**
- * Obtener todos los usuarios (solo admin)
- */
+
 exports.obtenerUsuarios = async (req, res) => {
     try {
         const [usuarios] = await db.query(`
@@ -23,9 +21,7 @@ exports.obtenerUsuarios = async (req, res) => {
     }
 };
 
-/**
- * Obtener todos los doctores (solo admin)
- */
+
 exports.obtenerDoctores = async (req, res) => {
     try {
         const [doctores] = await db.query(`
@@ -42,31 +38,29 @@ exports.obtenerDoctores = async (req, res) => {
     }
 };
 
-/**
- * Crear un doctor (solo admin)
- */
+
 exports.crearDoctor = async (req, res) => {
     const { email, password, nombre, especialidad } = req.body;
 
     try {
-        // Validaciones
+        
         if (!email || !password || !nombre || !especialidad) {
             return res.status(400).json({ mensaje: 'Todos los campos son requeridos.' });
         }
 
-        // Verificar que el email no exista
+        
         const [usuariosExistentes] = await db.query('SELECT id FROM usuarios WHERE email = ?', [email]);
         if (usuariosExistentes.length > 0) {
             return res.status(409).json({ mensaje: 'Este email ya está registrado.' });
         }
 
-        // Encriptar contraseña
+        
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Iniciar transacción
+        
         await db.query('START TRANSACTION');
 
-        // Crear usuario con rol doctor
+        
         const [resultadoUsuario] = await db.query(
             'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)',
             [email, passwordHash, 'doctor']
@@ -74,7 +68,7 @@ exports.crearDoctor = async (req, res) => {
 
         const usuarioId = resultadoUsuario.insertId;
 
-        // Crear perfil del doctor
+        
         await db.query(
             'INSERT INTO doctores (usuario_id, nombre, especialidad) VALUES (?, ?, ?)',
             [usuarioId, nombre, especialidad]
@@ -99,14 +93,12 @@ exports.crearDoctor = async (req, res) => {
     }
 };
 
-/**
- * Eliminar un doctor (solo admin)
- */
+
 exports.eliminarDoctor = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verificar que el doctor existe
+        
         const [doctorExistente] = await db.query('SELECT usuario_id FROM doctores WHERE id = ?', [id]);
         if (doctorExistente.length === 0) {
             return res.status(404).json({ mensaje: 'El doctor no existe.' });
@@ -114,7 +106,7 @@ exports.eliminarDoctor = async (req, res) => {
 
         const usuarioId = doctorExistente[0].usuario_id;
 
-        // Eliminar el usuario (cascade eliminará el doctor)
+        
         await db.query('DELETE FROM usuarios WHERE id = ?', [usuarioId]);
 
         res.json({ mensaje: 'Doctor eliminado exitosamente.' });
@@ -125,9 +117,7 @@ exports.eliminarDoctor = async (req, res) => {
     }
 };
 
-/**
- * Obtener todos los pacientes (solo admin)
- */
+
 exports.obtenerPacientes = async (req, res) => {
     try {
         const [pacientes] = await db.query(`
@@ -144,14 +134,12 @@ exports.obtenerPacientes = async (req, res) => {
     }
 };
 
-/**
- * Eliminar un paciente (solo admin)
- */
+
 exports.eliminarPaciente = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verificar que el paciente existe
+        
         const [pacienteExistente] = await db.query('SELECT usuario_id FROM pacientes WHERE id = ?', [id]);
         if (pacienteExistente.length === 0) {
             return res.status(404).json({ mensaje: 'El paciente no existe.' });
@@ -159,7 +147,7 @@ exports.eliminarPaciente = async (req, res) => {
 
         const usuarioId = pacienteExistente[0].usuario_id;
 
-        // Eliminar el usuario (cascade eliminará el paciente y sus citas)
+        
         await db.query('DELETE FROM usuarios WHERE id = ?', [usuarioId]);
 
         res.json({ mensaje: 'Paciente eliminado exitosamente.' });
@@ -170,20 +158,18 @@ exports.eliminarPaciente = async (req, res) => {
     }
 };
 
-/**
- * Eliminar una cita (solo admin)
- */
+
 exports.eliminarCita = async (req, res) => {
     const { id } = req.params;
 
     try {
-        // Verificar que la cita existe
+        
         const [citaExistente] = await db.query('SELECT id FROM citas WHERE id = ?', [id]);
         if (citaExistente.length === 0) {
             return res.status(404).json({ mensaje: 'La cita no existe.' });
         }
 
-        // Eliminar la cita
+        
         await db.query('DELETE FROM citas WHERE id = ?', [id]);
 
         res.json({ mensaje: 'Cita eliminada exitosamente.' });

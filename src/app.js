@@ -12,7 +12,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Servir archivos estáticos desde la carpeta 'public'
+
 const publicPath = path.join(__dirname, 'public');
 app.use(express.static(publicPath));
 
@@ -20,7 +20,7 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
-// Rutas de la API
+
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/citas', citasRoutes);

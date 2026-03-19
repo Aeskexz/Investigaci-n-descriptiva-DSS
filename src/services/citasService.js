@@ -1,11 +1,11 @@
 const db = require('../db');
-// se le agrega async 
+
 exports.validarDisponibilidad = async (datosCita) => {
 
     const { fecha, hora, doctor_id } = datosCita;
 
     const fechaObjeto = new Date(fecha);
-    const dia = fechaObjeto.getDay(); // 0 = domingo
+    const dia = fechaObjeto.getDay(); 
 
     if (dia === 0) {
         return {
@@ -31,12 +31,11 @@ exports.validarDisponibilidad = async (datosCita) => {
     }
 
     try {
-        // se busca si existe cita para el mismo doctor fecha y hora, se usa await para que js 
-        // espere la respuesta de la bd
+        
         const query = 'SELECT * FROM citas WHERE fecha = ? AND hora = ? AND doctor_id = ?';
         const [rows] = await db.query(query, [fecha, hora, doctor_id]);
 
-        // verificacion si el doctor ya tiene cita
+        
         if (rows.length > 0) {
             return {
                 disponible: false,

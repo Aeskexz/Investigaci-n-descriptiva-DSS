@@ -2,17 +2,15 @@ const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// Clave secreta para JWT (debería estar en .env en producción)
+
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
-/**
- * Registro de usuario (paciente o doctor)
- */
+
 exports.registrar = async (req, res) => {
     const { email, password, rol, nombre, especialidad, telefono } = req.body;
 
     try {
-        // Validaciones básicas
+        
         if (!email || !password || !rol) {
             return res.status(400).json({ mensaje: 'Email, contraseña y rol son requeridos.' });
         }
@@ -21,19 +19,19 @@ exports.registrar = async (req, res) => {
             return res.status(400).json({ mensaje: 'El rol debe ser "paciente" o "doctor".' });
         }
 
-        // Validar que el email no exista ya
+        
         const [usuariosExistentes] = await db.query('SELECT id FROM usuarios WHERE email = ?', [email]);
         if (usuariosExistentes.length > 0) {
             return res.status(409).json({ mensaje: 'Este email ya está registrado.' });
         }
 
-        // Encriptar contraseña
+        
         const passwordHash = await bcrypt.hash(password, 10);
 
-        // Iniciar transacción
+        
         await db.query('START TRANSACTION');
 
-        // Crear usuario
+        
         const [resultadoUsuario] = await db.query(
             'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)',
             [email, passwordHash, rol]
@@ -41,7 +39,7 @@ exports.registrar = async (req, res) => {
 
         const usuarioId = resultadoUsuario.insertId;
 
-        // Crear perfil según el rol
+        
         if (rol === 'doctor') {
             if (!nombre || !especialidad) {
                 await db.query('ROLLBACK');
@@ -80,19 +78,17 @@ exports.registrar = async (req, res) => {
     }
 };
 
-/**
- * Login de usuario
- */
+
 exports.login = async (req, res) => {
     const { email, password } = req.body;
 
     try {
-        // Validaciones básicas
+        
         if (!email || !password) {
             return res.status(400).json({ mensaje: 'Email y contraseña son requeridos.' });
         }
 
-        // Buscar usuario por email
+        
         const [usuarios] = await db.query(
             'SELECT id, email, password, rol FROM usuarios WHERE email = ?',
             [email]
@@ -104,13 +100,13 @@ exports.login = async (req, res) => {
 
         const usuario = usuarios[0];
 
-        // Verificar contraseña
+        
         const passwordValida = await bcrypt.compare(password, usuario.password);
         if (!passwordValida) {
             return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
         }
 
-        // Generar token JWT
+        
         const token = jwt.sign(
             { id: usuario.id, email: usuario.email, rol: usuario.rol },
             JWT_SECRET,
@@ -133,9 +129,7 @@ exports.login = async (req, res) => {
     }
 };
 
-/**
- * Obtener perfil del usuario autenticado
- */
+
 exports.obtenerPerfil = async (req, res) => {
     try {
         const usuarioId = req.usuario.id;
