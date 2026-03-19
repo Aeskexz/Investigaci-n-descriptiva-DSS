@@ -3,7 +3,7 @@ const router = express.Router();
 const citasController = require('../controllers/citasController');
 const { verificarToken } = require('../middleware/auth');
 
-// Todas las rutas requieren autenticación
+
 router.use(verificarToken);
 
 router.get('/', citasController.obtenerCitas);
