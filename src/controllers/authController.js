@@ -1,13 +1,14 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
 
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
 
 exports.registrar = async (req, res) => {
-    const { email, password, rol, nombre, especialidad, telefono } = req.body;
+    const { email, username, password, rol, nombre, especialidad, telefono } = req.body;
 
     try {
         
@@ -25,6 +26,14 @@ exports.registrar = async (req, res) => {
             return res.status(409).json({ mensaje: 'Este email ya está registrado.' });
         }
 
+        const usernameCandidate = username && String(username).trim()
+            ? normalizeUsername(username)
+            : await generateUniqueUsername(db, String(email).split('@')[0]);
+
+        if (await usernameExists(db, usernameCandidate)) {
+            return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado.' });
+        }
+
         
         const passwordHash = await bcrypt.hash(password, 10);
 
@@ -33,8 +42,8 @@ exports.registrar = async (req, res) => {
 
         
         const [resultadoUsuario] = await db.query(
-            'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)',
-            [email, passwordHash, rol]
+            'INSERT INTO usuarios (email, username, password, rol) VALUES (?, ?, ?, ?)',
+            [email, usernameCandidate, passwordHash, rol]
         );
 
         const usuarioId = resultadoUsuario.insertId;
@@ -67,6 +76,7 @@ exports.registrar = async (req, res) => {
             usuario: {
                 id: usuarioId,
                 email,
+                username: usernameCandidate,
                 rol
             }
         });
@@ -80,19 +90,26 @@ exports.registrar = async (req, res) => {
 
 
 exports.login = async (req, res) => {
-    const { email, password } = req.body;
+    const { identifier, email, username, password } = req.body;
+    const loginIdentifier = String(identifier || email || username || '').trim();
 
     try {
         
-        if (!email || !password) {
-            return res.status(400).json({ mensaje: 'Email y contraseña son requeridos.' });
+        if (!loginIdentifier || !password) {
+            return res.status(400).json({ mensaje: 'Correo o nombre de usuario y contraseña son requeridos.' });
         }
 
         
-        const [usuarios] = await db.query(
-            'SELECT id, email, password, rol FROM usuarios WHERE email = ?',
-            [email]
-        );
+        const isEmailLogin = loginIdentifier.includes('@');
+        const [usuarios] = isEmailLogin
+            ? await db.query(
+                'SELECT id, email, username, password, rol FROM usuarios WHERE email = ? LIMIT 1',
+                [loginIdentifier]
+            )
+            : await db.query(
+                'SELECT id, email, username, password, rol FROM usuarios WHERE username = ? LIMIT 1',
+                [normalizeUsername(loginIdentifier)]
+            );
 
         if (usuarios.length === 0) {
             return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
@@ -119,6 +136,7 @@ exports.login = async (req, res) => {
             usuario: {
                 id: usuario.id,
                 email: usuario.email,
+                username: usuario.username,
                 rol: usuario.rol
             }
         });
@@ -135,7 +153,7 @@ exports.obtenerPerfil = async (req, res) => {
         const usuarioId = req.usuario.id;
 
         const [usuarios] = await db.query(
-            'SELECT id, email, rol, creado_en FROM usuarios WHERE id = ?',
+            'SELECT id, email, username, rol, creado_en FROM usuarios WHERE id = ?',
             [usuarioId]
         );
 
@@ -164,6 +182,7 @@ exports.obtenerPerfil = async (req, res) => {
             usuario: {
                 id: usuario.id,
                 email: usuario.email,
+                username: usuario.username,
                 rol: usuario.rol,
                 creado_en: usuario.creado_en
             },
@@ -173,5 +192,221 @@ exports.obtenerPerfil = async (req, res) => {
     } catch (error) {
         console.error('Error al obtener perfil:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener el perfil.' });
+    }
+};
+
+
+exports.obtenerAjustesCuenta = async (req, res) => {
+    try {
+        const usuarioId = req.usuario.id;
+
+        const [usuarios] = await db.query(
+            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
+            [usuarioId]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
+
+        const usuario = usuarios[0];
+        let nombre = '';
+        let telefono = '';
+
+        if (usuario.rol === 'doctor') {
+            const [doctores] = await db.query(
+                'SELECT nombre FROM doctores WHERE usuario_id = ?',
+                [usuarioId]
+            );
+            nombre = doctores[0]?.nombre || '';
+        } else if (usuario.rol === 'paciente') {
+            const [pacientes] = await db.query(
+                'SELECT nombre, telefono FROM pacientes WHERE usuario_id = ?',
+                [usuarioId]
+            );
+            nombre = pacientes[0]?.nombre || '';
+            telefono = pacientes[0]?.telefono || '';
+        }
+
+        res.json({
+            ajustes: {
+                email: usuario.email,
+                username: usuario.username,
+                rol: usuario.rol,
+                nombre,
+                telefono
+            }
+        });
+    } catch (error) {
+        console.error('Error al obtener ajustes de cuenta:', error);
+        res.status(500).json({ mensaje: 'Error interno al obtener los ajustes de cuenta.' });
+    }
+};
+
+
+exports.actualizarAjustesCuenta = async (req, res) => {
+    const usuarioId = req.usuario.id;
+    const { email, username, nombre, telefono } = req.body;
+
+    try {
+        if (!email || !String(email).trim()) {
+            return res.status(400).json({ mensaje: 'El correo electrónico es requerido.' });
+        }
+
+        const emailLimpio = String(email).trim();
+
+        const [usuarios] = await db.query(
+            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
+            [usuarioId]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
+
+        const usuario = usuarios[0];
+
+        const [emailDuplicado] = await db.query(
+            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
+            [emailLimpio, usuarioId]
+        );
+
+        if (emailDuplicado.length > 0) {
+            return res.status(409).json({ mensaje: 'Este correo ya está registrado por otro usuario.' });
+        }
+
+        const usernameLimpio = username && String(username).trim()
+            ? normalizeUsername(username)
+            : usuario.username;
+
+        const usernameDuplicado = await usernameExists(db, usernameLimpio, usuarioId);
+        if (usernameDuplicado) {
+            return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado por otro usuario.' });
+        }
+
+        await db.query('START TRANSACTION');
+
+        await db.query('UPDATE usuarios SET email = ?, username = ? WHERE id = ?', [emailLimpio, usernameLimpio, usuarioId]);
+
+        let nombreFinal = '';
+        let telefonoFinal = '';
+
+        if (usuario.rol === 'doctor') {
+            const [doctores] = await db.query(
+                'SELECT nombre FROM doctores WHERE usuario_id = ?',
+                [usuarioId]
+            );
+
+            if (doctores.length === 0) {
+                await db.query('ROLLBACK');
+                return res.status(404).json({ mensaje: 'Perfil de doctor no encontrado.' });
+            }
+
+            nombreFinal = (typeof nombre === 'string' && nombre.trim()) ? nombre.trim() : doctores[0].nombre;
+
+            await db.query(
+                'UPDATE doctores SET nombre = ? WHERE usuario_id = ?',
+                [nombreFinal, usuarioId]
+            );
+        } else if (usuario.rol === 'paciente') {
+            const [pacientes] = await db.query(
+                'SELECT nombre, telefono FROM pacientes WHERE usuario_id = ?',
+                [usuarioId]
+            );
+
+            if (pacientes.length === 0) {
+                await db.query('ROLLBACK');
+                return res.status(404).json({ mensaje: 'Perfil de paciente no encontrado.' });
+            }
+
+            nombreFinal = (typeof nombre === 'string' && nombre.trim()) ? nombre.trim() : pacientes[0].nombre;
+            telefonoFinal = typeof telefono === 'string'
+                ? (telefono.trim() || null)
+                : (pacientes[0].telefono || null);
+
+            await db.query(
+                'UPDATE pacientes SET nombre = ?, telefono = ? WHERE usuario_id = ?',
+                [nombreFinal, telefonoFinal, usuarioId]
+            );
+        }
+
+        await db.query('COMMIT');
+
+        res.json({
+            mensaje: 'Ajustes de cuenta actualizados exitosamente.',
+            usuario: {
+                id: usuarioId,
+                email: emailLimpio,
+                username: usernameLimpio,
+                rol: usuario.rol,
+                nombre: nombreFinal,
+                telefono: telefonoFinal || ''
+            }
+        });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error al actualizar ajustes de cuenta:', error);
+        res.status(500).json({ mensaje: 'Error interno al actualizar los ajustes de cuenta.' });
+    }
+};
+
+
+exports.cambiarPasswordCuenta = async (req, res) => {
+    const usuarioId = req.usuario.id;
+    const { passwordActual, nuevaPassword, confirmarPassword } = req.body;
+
+    try {
+        if (!passwordActual || !nuevaPassword || !confirmarPassword) {
+            return res.status(400).json({ mensaje: 'La contraseña actual, la nueva contraseña y su confirmación son requeridas.' });
+        }
+
+        if (String(nuevaPassword).length < 6) {
+            return res.status(400).json({ mensaje: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+        }
+
+        if (String(nuevaPassword) !== String(confirmarPassword)) {
+            return res.status(400).json({ mensaje: 'La nueva contraseña y su confirmación no coinciden.' });
+        }
+
+        const [usuarios] = await db.query(
+            'SELECT id, password FROM usuarios WHERE id = ?',
+            [usuarioId]
+        );
+
+        if (usuarios.length === 0) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
+
+        const passwordValida = await bcrypt.compare(passwordActual, usuarios[0].password);
+        if (!passwordValida) {
+            return res.status(401).json({ mensaje: 'La contraseña actual es incorrecta.' });
+        }
+
+        const passwordHash = await bcrypt.hash(String(nuevaPassword), 10);
+
+        await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, usuarioId]);
+
+        res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
+    } catch (error) {
+        console.error('Error al cambiar contraseña:', error);
+        res.status(500).json({ mensaje: 'Error interno al cambiar la contraseña.' });
+    }
+};
+
+
+exports.eliminarMiCuenta = async (req, res) => {
+    const usuarioId = req.usuario.id;
+
+    try {
+        const [resultado] = await db.query('DELETE FROM usuarios WHERE id = ?', [usuarioId]);
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
+
+        res.json({ mensaje: 'Cuenta eliminada exitosamente.' });
+    } catch (error) {
+        console.error('Error al eliminar cuenta:', error);
+        res.status(500).json({ mensaje: 'Error interno al eliminar la cuenta.' });
     }
 };

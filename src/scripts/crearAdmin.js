@@ -18,18 +18,19 @@ async function crearAdmin() {
 
         
         await db.query(
-            'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)',
-            ['admin@sistema.com', passwordHash, 'admin']
+            'INSERT INTO usuarios (email, username, password, rol) VALUES (?, ?, ?, ?)',
+            ['admin@sistema.com', 'admin', passwordHash, 'admin']
         );
 
-        console.log('✅ Administrador creado exitosamente!');
+        console.log('Administrador creado exitosamente.');
         console.log('   Email: admin@sistema.com');
+        console.log('   Username: admin');
         console.log('   Contraseña: admin123');
-        console.log('\n⚠️  Cambia la contraseña después del primer login.');
+        console.log('\nCambia la contraseña después del primer login.');
 
         process.exit(0);
     } catch (error) {
-        console.error('❌ Error al crear administrador:', error);
+        console.error('Error al crear administrador:', error);
         process.exit(1);
     }
 }

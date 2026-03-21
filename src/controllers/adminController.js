@@ -1,11 +1,12 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
+const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
 
 
 exports.obtenerUsuarios = async (req, res) => {
     try {
         const [usuarios] = await db.query(`
-            SELECT u.id, u.email, u.rol, u.creado_en,
+            SELECT u.id, u.email, u.username, u.rol, u.creado_en,
                    d.nombre AS doctor_nombre, d.especialidad,
                    p.nombre AS paciente_nombre, p.telefono
             FROM usuarios u
@@ -25,7 +26,7 @@ exports.obtenerUsuarios = async (req, res) => {
 exports.obtenerDoctores = async (req, res) => {
     try {
         const [doctores] = await db.query(`
-            SELECT d.id, d.nombre, d.especialidad, u.email, u.creado_en
+            SELECT d.id, d.nombre, d.especialidad, u.email, u.username, u.creado_en
             FROM doctores d
             JOIN usuarios u ON d.usuario_id = u.id
             ORDER BY d.nombre
@@ -40,7 +41,7 @@ exports.obtenerDoctores = async (req, res) => {
 
 
 exports.crearDoctor = async (req, res) => {
-    const { email, password, nombre, especialidad } = req.body;
+    const { email, username, password, nombre, especialidad } = req.body;
 
     try {
         
@@ -54,6 +55,14 @@ exports.crearDoctor = async (req, res) => {
             return res.status(409).json({ mensaje: 'Este email ya está registrado.' });
         }
 
+        const usernameCandidate = username && String(username).trim()
+            ? normalizeUsername(username)
+            : await generateUniqueUsername(db, String(email).split('@')[0]);
+
+        if (await usernameExists(db, usernameCandidate)) {
+            return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado.' });
+        }
+
         
         const passwordHash = await bcrypt.hash(password, 10);
 
@@ -62,8 +71,8 @@ exports.crearDoctor = async (req, res) => {
 
         
         const [resultadoUsuario] = await db.query(
-            'INSERT INTO usuarios (email, password, rol) VALUES (?, ?, ?)',
-            [email, passwordHash, 'doctor']
+            'INSERT INTO usuarios (email, username, password, rol) VALUES (?, ?, ?, ?)',
+            [email, usernameCandidate, passwordHash, 'doctor']
         );
 
         const usuarioId = resultadoUsuario.insertId;
@@ -82,7 +91,8 @@ exports.crearDoctor = async (req, res) => {
                 id: resultadoUsuario.insertId,
                 nombre,
                 especialidad,
-                email
+                email,
+                username: usernameCandidate
             }
         });
 
@@ -90,6 +100,108 @@ exports.crearDoctor = async (req, res) => {
         await db.query('ROLLBACK');
         console.error('Error al crear doctor:', error);
         res.status(500).json({ mensaje: 'Error interno al crear el doctor.' });
+    }
+};
+
+
+exports.editarDoctor = async (req, res) => {
+    const { id } = req.params;
+    const { email, username, nombre, especialidad } = req.body;
+
+    try {
+        if (!email || !nombre || !especialidad) {
+            return res.status(400).json({ mensaje: 'Email, nombre y especialidad son requeridos.' });
+        }
+
+        const [doctores] = await db.query(
+            `SELECT d.id, d.usuario_id, u.email, u.username
+             FROM doctores d
+             JOIN usuarios u ON d.usuario_id = u.id
+             WHERE d.id = ?`,
+            [id]
+        );
+
+        if (doctores.length === 0) {
+            return res.status(404).json({ mensaje: 'El doctor no existe.' });
+        }
+
+        const doctor = doctores[0];
+
+        const [emailDuplicado] = await db.query(
+            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
+            [email, doctor.usuario_id]
+        );
+
+        if (emailDuplicado.length > 0) {
+            return res.status(409).json({ mensaje: 'Este email ya está registrado por otro usuario.' });
+        }
+
+        const usernameLimpio = username && String(username).trim()
+            ? normalizeUsername(username)
+            : doctor.username;
+
+        const usernameDuplicado = await usernameExists(db, usernameLimpio, doctor.usuario_id);
+        if (usernameDuplicado) {
+            return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado por otro usuario.' });
+        }
+
+        await db.query('START TRANSACTION');
+
+        await db.query('UPDATE usuarios SET email = ?, username = ? WHERE id = ?', [email, usernameLimpio, doctor.usuario_id]);
+
+        await db.query(
+            'UPDATE doctores SET nombre = ?, especialidad = ? WHERE id = ?',
+            [nombre, especialidad, id]
+        );
+
+        await db.query('COMMIT');
+
+        res.json({
+            mensaje: 'Doctor actualizado exitosamente.',
+            doctor: {
+                id: Number(id),
+                email,
+                username: usernameLimpio,
+                nombre,
+                especialidad
+            }
+        });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error al editar doctor:', error);
+        res.status(500).json({ mensaje: 'Error interno al editar el doctor.' });
+    }
+};
+
+
+exports.restaurarPasswordDoctor = async (req, res) => {
+    const { id } = req.params;
+    const { nuevaPassword } = req.body || {};
+
+    try {
+        const passwordFinal = (nuevaPassword && String(nuevaPassword).trim()) || 'doctor123';
+
+        if (passwordFinal.length < 6) {
+            return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 6 caracteres.' });
+        }
+
+        const [doctores] = await db.query('SELECT usuario_id FROM doctores WHERE id = ?', [id]);
+
+        if (doctores.length === 0) {
+            return res.status(404).json({ mensaje: 'El doctor no existe.' });
+        }
+
+        const passwordHash = await bcrypt.hash(passwordFinal, 10);
+
+        await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, doctores[0].usuario_id]);
+
+        res.json({
+            mensaje: 'Contraseña restaurada exitosamente.',
+            passwordTemporal: passwordFinal
+        });
+    } catch (error) {
+        console.error('Error al restaurar contraseña del doctor:', error);
+        res.status(500).json({ mensaje: 'Error interno al restaurar la contraseña.' });
     }
 };
 
@@ -121,7 +233,7 @@ exports.eliminarDoctor = async (req, res) => {
 exports.obtenerPacientes = async (req, res) => {
     try {
         const [pacientes] = await db.query(`
-            SELECT p.id, p.nombre, p.telefono, u.email, u.creado_en
+            SELECT p.id, p.nombre, p.telefono, u.email, u.username, u.creado_en
             FROM pacientes p
             JOIN usuarios u ON p.usuario_id = u.id
             ORDER BY p.nombre
@@ -131,6 +243,108 @@ exports.obtenerPacientes = async (req, res) => {
     } catch (error) {
         console.error('Error al obtener pacientes:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener los pacientes.' });
+    }
+};
+
+
+exports.editarPaciente = async (req, res) => {
+    const { id } = req.params;
+    const { email, username, nombre, telefono } = req.body;
+
+    try {
+        if (!email || !nombre) {
+            return res.status(400).json({ mensaje: 'Email y nombre son requeridos.' });
+        }
+
+        const [pacientes] = await db.query(
+            `SELECT p.id, p.usuario_id, u.email, u.username
+             FROM pacientes p
+             JOIN usuarios u ON p.usuario_id = u.id
+             WHERE p.id = ?`,
+            [id]
+        );
+
+        if (pacientes.length === 0) {
+            return res.status(404).json({ mensaje: 'El paciente no existe.' });
+        }
+
+        const paciente = pacientes[0];
+
+        const [emailDuplicado] = await db.query(
+            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
+            [email, paciente.usuario_id]
+        );
+
+        if (emailDuplicado.length > 0) {
+            return res.status(409).json({ mensaje: 'Este email ya está registrado por otro usuario.' });
+        }
+
+        const usernameLimpio = username && String(username).trim()
+            ? normalizeUsername(username)
+            : paciente.username;
+
+        const usernameDuplicado = await usernameExists(db, usernameLimpio, paciente.usuario_id);
+        if (usernameDuplicado) {
+            return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado por otro usuario.' });
+        }
+
+        await db.query('START TRANSACTION');
+
+        await db.query('UPDATE usuarios SET email = ?, username = ? WHERE id = ?', [email, usernameLimpio, paciente.usuario_id]);
+
+        await db.query(
+            'UPDATE pacientes SET nombre = ?, telefono = ? WHERE id = ?',
+            [nombre, telefono || null, id]
+        );
+
+        await db.query('COMMIT');
+
+        res.json({
+            mensaje: 'Paciente actualizado exitosamente.',
+            paciente: {
+                id: Number(id),
+                email,
+                username: usernameLimpio,
+                nombre,
+                telefono: telefono || null
+            }
+        });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error al editar paciente:', error);
+        res.status(500).json({ mensaje: 'Error interno al editar el paciente.' });
+    }
+};
+
+
+exports.restaurarPasswordPaciente = async (req, res) => {
+    const { id } = req.params;
+    const { nuevaPassword } = req.body || {};
+
+    try {
+        const passwordFinal = (nuevaPassword && String(nuevaPassword).trim()) || 'paciente123';
+
+        if (passwordFinal.length < 6) {
+            return res.status(400).json({ mensaje: 'La contraseña debe tener al menos 6 caracteres.' });
+        }
+
+        const [pacientes] = await db.query('SELECT usuario_id FROM pacientes WHERE id = ?', [id]);
+
+        if (pacientes.length === 0) {
+            return res.status(404).json({ mensaje: 'El paciente no existe.' });
+        }
+
+        const passwordHash = await bcrypt.hash(passwordFinal, 10);
+
+        await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, pacientes[0].usuario_id]);
+
+        res.json({
+            mensaje: 'Contraseña restaurada exitosamente.',
+            passwordTemporal: passwordFinal
+        });
+    } catch (error) {
+        console.error('Error al restaurar contraseña del paciente:', error);
+        res.status(500).json({ mensaje: 'Error interno al restaurar la contraseña.' });
     }
 };
 

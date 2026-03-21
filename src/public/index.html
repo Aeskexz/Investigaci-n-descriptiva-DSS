@@ -76,12 +76,14 @@
             margin-top: 16px;
             padding-top: 16px;
             border-top: 1px solid rgba(255, 255, 255, 0.2);
+            gap: 12px;
         }
 
         .user-info {
             display: flex;
             align-items: center;
             gap: 12px;
+            flex-wrap: wrap;
         }
 
         .user-badge {
@@ -443,6 +445,7 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
             padding: 12px;
             background: var(--surface);
             border-radius: 8px;
@@ -495,9 +498,31 @@
 
         
         @media (max-width: 768px) {
-            .grid { grid-template-columns: 1fr; }
-            .header { padding: 24px; }
-            .auth-card { padding: 24px; }
+            .app { padding: 12px; }
+            .grid,
+            .form-row,
+            .role-selector { grid-template-columns: 1fr; }
+            .header { padding: 20px; border-radius: 16px; }
+            .header h1 { font-size: 24px; }
+            .header-user { flex-direction: column; align-items: stretch; }
+            .auth-container { margin: 16px auto; }
+            .auth-card,
+            .card { padding: 18px; border-radius: 16px; }
+            .appointment-header,
+            .admin-row { flex-direction: column; align-items: flex-start; }
+            .appointment-actions { width: 100%; justify-content: flex-start; flex-wrap: wrap; }
+            .btn { width: 100%; }
+            .btn-sm { width: auto; }
+            #headerUser > div:last-child { width: 100%; display: grid !important; grid-template-columns: 1fr; gap: 8px; }
+            #headerUser > div:last-child .btn { width: 100%; }
+            #adminDoctorsView form { grid-template-columns: 1fr !important; }
+        }
+
+        @media (max-width: 420px) {
+            .header h1 { font-size: 22px; }
+            .card-title { font-size: 18px; }
+            .card-subtitle { font-size: 13px; }
+            input, select, textarea { font-size: 14px; }
         }
     </style>
 </head>
@@ -506,16 +531,21 @@
     <div class="app">
         
         <header class="header" id="header">
-            <h1>🏥 Citas Médicas</h1>
+            <h1>Citas Médicas</h1>
             <p class="subtitle">Sistema de Gestión de Citas</p>
             <div class="header-user hidden" id="headerUser">
                 <div class="user-info">
                     <span id="userEmail"></span>
                     <span class="user-badge" id="userRole"></span>
                 </div>
-                <button class="btn btn-outline" onclick="logout()" style="border-color: white; color: white;">
-                    Cerrar Sesión
-                </button>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn btn-outline" onclick="toggleSettingsPanel()" style="border-color: white; color: white;">
+                        Ajustes
+                    </button>
+                    <button class="btn btn-outline" onclick="logout()" style="border-color: white; color: white;">
+                        Cerrar Sesión
+                    </button>
+                </div>
             </div>
         </header>
 
@@ -527,8 +557,8 @@
 
                 <form onsubmit="login(event)">
                     <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="loginEmail" placeholder="tu@email.com" required>
+                        <label>Correo o nombre de usuario</label>
+                        <input type="text" id="loginIdentifier" placeholder="tu@email.com o usuario" required>
                     </div>
                     <div class="form-group">
                         <label>Contraseña</label>
@@ -555,6 +585,10 @@
                         <input type="email" id="regEmail" placeholder="tu@email.com" required>
                     </div>
                     <div class="form-group">
+                        <label>Nombre de usuario</label>
+                        <input type="text" id="regUsername" placeholder="tu_usuario" required>
+                    </div>
+                    <div class="form-group">
                         <label>Contraseña</label>
                         <input type="password" id="regPassword" placeholder="Mínimo 6 caracteres" minlength="6" required>
                     </div>
@@ -577,9 +611,67 @@
 
         
         <div class="hidden" id="mainContent">
+            <div class="card hidden" id="settingsPanel" style="margin-bottom: 24px;">
+                <div class="card-header">
+                    <div class="card-icon">A</div>
+                    <div>
+                        <div class="card-title">Ajustes de Cuenta</div>
+                        <div class="card-subtitle">Gestiona tu información y seguridad</div>
+                    </div>
+                </div>
+
+                <form onsubmit="guardarAjustesCuenta(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Correo electrónico</label>
+                            <input type="email" id="settingsEmail" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nombre de usuario</label>
+                            <input type="text" id="settingsUsername" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Nombre</label>
+                            <input type="text" id="settingsNombre" placeholder="Tu nombre">
+                        </div>
+                        <div class="form-group">
+                            <label>Teléfono</label>
+                            <input type="text" id="settingsTelefono" placeholder="Tu teléfono">
+                        </div>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                </form>
+
+                <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+
+                <form onsubmit="cambiarPasswordCuenta(event)">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Contraseña actual</label>
+                            <input type="password" id="settingsPasswordActual" required>
+                        </div>
+                        <div class="form-group">
+                            <label>Nueva contraseña</label>
+                            <input type="password" id="settingsNuevaPassword" minlength="6" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>Confirmar nueva contraseña</label>
+                        <input type="password" id="settingsConfirmarPassword" minlength="6" required>
+                    </div>
+                    <button type="submit" class="btn btn-secondary">Cambiar contraseña</button>
+                </form>
+
+                <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+
+                <button class="btn btn-danger" onclick="eliminarMiCuenta()">Eliminar cuenta</button>
+            </div>
+
             
             <div class="admin-panel hidden" id="adminPanel">
-                <h3>🔧 Panel de Administrador</h3>
+                <h3>Panel de Administrador</h3>
                 
                 <div style="margin-bottom: 20px;">
                     <button class="btn btn-secondary" onclick="showAdminDoctors()">Gestionar Doctores</button>
@@ -590,6 +682,7 @@
                     <h4 style="margin-bottom: 12px;">Crear Doctor</h4>
                     <form onsubmit="adminCreateDoctor(event)" style="display: grid; gap: 12px; grid-template-columns: 1fr 1fr;">
                         <input type="email" id="adminDocEmail" placeholder="Email del doctor" required>
+                        <input type="text" id="adminDocUsername" placeholder="Nombre de usuario" required>
                         <input type="password" id="adminDocPassword" placeholder="Contraseña" required>
                         <input type="text" id="adminDocNombre" placeholder="Nombre completo" required>
                         <input type="text" id="adminDocEspecialidad" placeholder="Especialidad" required>
@@ -612,7 +705,7 @@
                     
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">📅</div>
+                            <div class="card-icon">C</div>
                             <div>
                                 <div class="card-title">Agendar Nueva Cita</div>
                                 <div class="card-subtitle">Reserva tu cita médica</div>
@@ -620,7 +713,7 @@
                         </div>
 
                         <div style="background: rgba(0, 168, 150, 0.05); border: 1px solid var(--secondary); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
-                            <strong style="color: var(--primary);">🕐 Horario de Atención</strong>
+                            <strong style="color: var(--primary);">Horario de Atención</strong>
                             <div style="font-size: 13px; color: var(--text-secondary); margin-top: 8px;">
                                 <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
                                     <span>Lunes a Viernes:</span>
@@ -672,7 +765,7 @@
                     
                     <div class="card">
                         <div class="card-header">
-                            <div class="card-icon">👨‍⚕️</div>
+                            <div class="card-icon">D</div>
                             <div>
                                 <div class="card-title">Doctores</div>
                                 <div class="card-subtitle">Especialistas disponibles</div>
@@ -691,7 +784,7 @@
                 
                 <div class="card" style="margin-top: 24px;">
                     <div class="card-header">
-                        <div class="card-icon">📋</div>
+                            <div class="card-icon">M</div>
                         <div>
                             <div class="card-title">Mis Citas</div>
                             <div class="card-subtitle">Tus citas programadas</div>
@@ -715,7 +808,7 @@
             <div class="hidden" id="doctorPanel">
                 <div class="card">
                     <div class="card-header">
-                        <div class="card-icon">📋</div>
+                            <div class="card-icon">L</div>
                         <div>
                             <div class="card-title">Citas Asignadas</div>
                             <div class="card-subtitle">Gestiona las citas de tus pacientes</div>
@@ -769,6 +862,7 @@
             document.getElementById('registerView').classList.add('hidden');
             document.getElementById('mainContent').classList.remove('hidden');
             document.getElementById('headerUser').classList.remove('hidden');
+            document.getElementById('settingsPanel').classList.add('hidden');
             document.getElementById('userEmail').textContent = usuario.email;
             document.getElementById('userRole').textContent = usuario.rol.toUpperCase();
 
@@ -794,14 +888,14 @@
         
         async function login(e) {
             e.preventDefault();
-            const email = document.getElementById('loginEmail').value;
+            const identifier = document.getElementById('loginIdentifier').value;
             const password = document.getElementById('loginPassword').value;
 
             try {
                 const res = await fetch(`${API_URL}/auth/login`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email, password })
+                    body: JSON.stringify({ identifier, password })
                 });
 
                 const data = await res.json();
@@ -822,6 +916,7 @@
         async function registerPaciente(e) {
             e.preventDefault();
             const email = document.getElementById('regEmail').value;
+            const username = document.getElementById('regUsername').value;
             const password = document.getElementById('regPassword').value;
             const nombre = document.getElementById('regNombre').value;
             const telefono = document.getElementById('regTelefono').value;
@@ -832,6 +927,7 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         email,
+                        username,
                         password,
                         rol: 'paciente',
                         nombre,
@@ -856,6 +952,129 @@
             localStorage.removeItem('token');
             localStorage.removeItem('usuario');
             location.reload();
+        }
+
+        async function toggleSettingsPanel() {
+            const panel = document.getElementById('settingsPanel');
+            const visible = !panel.classList.contains('hidden');
+
+            if (visible) {
+                panel.classList.add('hidden');
+                return;
+            }
+
+            panel.classList.remove('hidden');
+            await cargarAjustesCuenta();
+        }
+
+        async function cargarAjustesCuenta() {
+            try {
+                const res = await fetch(`${API_URL}/auth/ajustes`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudieron cargar los ajustes.');
+
+                document.getElementById('settingsEmail').value = data.ajustes.email || '';
+                document.getElementById('settingsUsername').value = data.ajustes.username || '';
+                document.getElementById('settingsNombre').value = data.ajustes.nombre || '';
+                document.getElementById('settingsTelefono').value = data.ajustes.telefono || '';
+
+                const puedeEditarTelefono = data.ajustes.rol === 'paciente';
+                document.getElementById('settingsTelefono').disabled = !puedeEditarTelefono;
+                document.getElementById('settingsTelefono').placeholder = puedeEditarTelefono
+                    ? 'Tu teléfono'
+                    : 'No aplica para este rol';
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function guardarAjustesCuenta(e) {
+            e.preventDefault();
+
+            const email = document.getElementById('settingsEmail').value;
+            const username = document.getElementById('settingsUsername').value;
+            const nombre = document.getElementById('settingsNombre').value;
+            const telefono = document.getElementById('settingsTelefono').value;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/ajustes`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ email, username, nombre, telefono })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudieron guardar los ajustes.');
+
+                usuario.email = data.usuario.email;
+                usuario.username = data.usuario.username;
+                localStorage.setItem('usuario', JSON.stringify(usuario));
+                document.getElementById('userEmail').textContent = usuario.email;
+
+                alert('Ajustes actualizados exitosamente.');
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function cambiarPasswordCuenta(e) {
+            e.preventDefault();
+
+            const passwordActual = document.getElementById('settingsPasswordActual').value;
+            const nuevaPassword = document.getElementById('settingsNuevaPassword').value;
+            const confirmarPassword = document.getElementById('settingsConfirmarPassword').value;
+
+            if (nuevaPassword !== confirmarPassword) {
+                alert('La nueva contraseña y la confirmación no coinciden.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/auth/cambiar-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ passwordActual, nuevaPassword, confirmarPassword })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo cambiar la contraseña.');
+
+                document.getElementById('settingsPasswordActual').value = '';
+                document.getElementById('settingsNuevaPassword').value = '';
+                document.getElementById('settingsConfirmarPassword').value = '';
+
+                alert('Contraseña actualizada exitosamente.');
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function eliminarMiCuenta() {
+            if (!confirm('¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer.')) return;
+
+            try {
+                const res = await fetch(`${API_URL}/auth/cuenta`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo eliminar la cuenta.');
+
+                alert('Cuenta eliminada exitosamente.');
+                logout();
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         let doctorSeleccionadoId = null;
@@ -892,7 +1111,7 @@
             
             
             document.getElementById('doctorSeleccionado').innerHTML = 
-                `✅ ${nombre}`;
+                `Seleccionado: ${nombre}`;
             document.getElementById('doctorSeleccionado').style.color = 'var(--success)';
         }
 
@@ -1145,9 +1364,13 @@
                     <div class="admin-row">
                         <div>
                             <strong>${d.nombre}</strong> - ${d.especialidad}
-                            <br><small>${d.email}</small>
+                            <br><small>${d.email} · @${d.username}</small>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarDoctor(${d.id})">Eliminar</button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm" onclick='editarDoctor(${d.id}, ${JSON.stringify(d.email)}, ${JSON.stringify(d.username)}, ${JSON.stringify(d.nombre)}, ${JSON.stringify(d.especialidad)})'>Editar</button>
+                            <button class="btn btn-secondary btn-sm" onclick='restaurarPasswordDoctor(${d.id}, ${JSON.stringify(d.nombre)})'>Restaurar contraseña</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarDoctor(${d.id})">Eliminar</button>
+                        </div>
                     </div>
                 `).join('') || '<p>No hay doctores registrados</p>';
             } catch (err) {
@@ -1166,9 +1389,13 @@
                     <div class="admin-row">
                         <div>
                             <strong>${p.nombre}</strong>
-                            <br><small>${p.email} ${p.telefono ? '· ' + p.telefono : ''}</small>
+                            <br><small>${p.email} · @${p.username}${p.telefono ? ' · ' + p.telefono : ''}</small>
                         </div>
-                        <button class="btn btn-danger btn-sm" onclick="eliminarPaciente(${p.id})">Eliminar</button>
+                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                            <button class="btn btn-outline btn-sm" onclick='editarPaciente(${p.id}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
+                            <button class="btn btn-secondary btn-sm" onclick='restaurarPasswordPaciente(${p.id}, ${JSON.stringify(p.nombre)})'>Restaurar contraseña</button>
+                            <button class="btn btn-danger btn-sm" onclick="eliminarPaciente(${p.id})">Eliminar</button>
+                        </div>
                     </div>
                 `).join('') || '<p>No hay pacientes registrados</p>';
             } catch (err) {
@@ -1179,6 +1406,7 @@
         async function adminCreateDoctor(e) {
             e.preventDefault();
             const email = document.getElementById('adminDocEmail').value;
+            const username = document.getElementById('adminDocUsername').value;
             const password = document.getElementById('adminDocPassword').value;
             const nombre = document.getElementById('adminDocNombre').value;
             const especialidad = document.getElementById('adminDocEspecialidad').value;
@@ -1190,7 +1418,7 @@
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ email, password, nombre, especialidad })
+                    body: JSON.stringify({ email, username, password, nombre, especialidad })
                 });
 
                 const data = await res.json();
@@ -1217,6 +1445,87 @@
             }
         }
 
+        async function editarDoctor(id, emailActual, usernameActual, nombreActual, especialidadActual) {
+            const email = prompt('Email del doctor:', emailActual);
+            if (email === null) return;
+
+            const username = prompt('Nombre de usuario del doctor:', usernameActual);
+            if (username === null) return;
+
+            const nombre = prompt('Nombre del doctor:', nombreActual);
+            if (nombre === null) return;
+
+            const especialidad = prompt('Especialidad del doctor:', especialidadActual);
+            if (especialidad === null) return;
+
+            if (!email.trim() || !username.trim() || !nombre.trim() || !especialidad.trim()) {
+                alert('Email, nombre de usuario, nombre y especialidad son requeridos.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/admin/doctores/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        email: email.trim(),
+                        username: username.trim(),
+                        nombre: nombre.trim(),
+                        especialidad: especialidad.trim()
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo editar el doctor.');
+
+                alert('Doctor actualizado exitosamente.');
+                cargarAdminDoctors();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function restaurarPasswordDoctor(id, nombreDoctor) {
+            const nuevaPassword = prompt(
+                `Nueva contraseña para ${nombreDoctor}.\nDeja vacío para usar la temporal "doctor123":`,
+                ''
+            );
+
+            if (nuevaPassword === null) return;
+
+            if (nuevaPassword.trim() && nuevaPassword.trim().length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            if (!confirm(`¿Deseas restaurar la contraseña del doctor ${nombreDoctor}?`)) return;
+
+            try {
+                const body = nuevaPassword.trim()
+                    ? { nuevaPassword: nuevaPassword.trim() }
+                    : {};
+
+                const res = await fetch(`${API_URL}/admin/doctores/${id}/restaurar-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo restaurar la contraseña.');
+
+                alert(`Contraseña restaurada. Nueva contraseña: ${data.passwordTemporal}`);
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
         async function eliminarPaciente(id) {
             if (!confirm('¿Eliminar este paciente?')) return;
             try {
@@ -1227,6 +1536,87 @@
                 cargarAdminPatients();
             } catch (err) {
                 alert('No se pudo eliminar');
+            }
+        }
+
+        async function editarPaciente(id, emailActual, usernameActual, nombreActual, telefonoActual) {
+            const email = prompt('Email del paciente:', emailActual);
+            if (email === null) return;
+
+            const username = prompt('Nombre de usuario del paciente:', usernameActual);
+            if (username === null) return;
+
+            const nombre = prompt('Nombre del paciente:', nombreActual);
+            if (nombre === null) return;
+
+            const telefono = prompt('Teléfono del paciente (opcional):', telefonoActual || '');
+            if (telefono === null) return;
+
+            if (!email.trim() || !username.trim() || !nombre.trim()) {
+                alert('Email, nombre de usuario y nombre son requeridos.');
+                return;
+            }
+
+            try {
+                const res = await fetch(`${API_URL}/admin/pacientes/${id}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({
+                        email: email.trim(),
+                        username: username.trim(),
+                        nombre: nombre.trim(),
+                        telefono: telefono.trim()
+                    })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo editar el paciente.');
+
+                alert('Paciente actualizado exitosamente.');
+                cargarAdminPatients();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function restaurarPasswordPaciente(id, nombrePaciente) {
+            const nuevaPassword = prompt(
+                `Nueva contraseña para ${nombrePaciente}.\nDeja vacío para usar la temporal "paciente123":`,
+                ''
+            );
+
+            if (nuevaPassword === null) return;
+
+            if (nuevaPassword.trim() && nuevaPassword.trim().length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+
+            if (!confirm(`¿Deseas restaurar la contraseña del paciente ${nombrePaciente}?`)) return;
+
+            try {
+                const body = nuevaPassword.trim()
+                    ? { nuevaPassword: nuevaPassword.trim() }
+                    : {};
+
+                const res = await fetch(`${API_URL}/admin/pacientes/${id}/restaurar-password`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify(body)
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo restaurar la contraseña.');
+
+                alert(`Contraseña restaurada. Nueva contraseña: ${data.passwordTemporal}`);
+            } catch (err) {
+                alert(err.message);
             }
         }
     </script>
