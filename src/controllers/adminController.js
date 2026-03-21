@@ -1,6 +1,8 @@
 const db = require('../db');
 const bcrypt = require('bcrypt');
 const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
+const path = require('path');
+const fs = require('fs');
 
 
 exports.obtenerUsuarios = async (req, res) => {
@@ -26,7 +28,7 @@ exports.obtenerUsuarios = async (req, res) => {
 exports.obtenerDoctores = async (req, res) => {
     try {
         const [doctores] = await db.query(`
-            SELECT d.id, d.nombre, d.especialidad, u.email, u.username, u.creado_en
+            SELECT d.id, d.nombre, d.especialidad, d.foto_perfil, u.email, u.username, u.creado_en
             FROM doctores d
             JOIN usuarios u ON d.usuario_id = u.id
             ORDER BY d.nombre
@@ -377,13 +379,13 @@ exports.eliminarCita = async (req, res) => {
     const { id } = req.params;
 
     try {
-        
+
         const [citaExistente] = await db.query('SELECT id FROM citas WHERE id = ?', [id]);
         if (citaExistente.length === 0) {
             return res.status(404).json({ mensaje: 'La cita no existe.' });
         }
 
-        
+
         await db.query('DELETE FROM citas WHERE id = ?', [id]);
 
         res.json({ mensaje: 'Cita eliminada exitosamente.' });
@@ -391,5 +393,55 @@ exports.eliminarCita = async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar cita:', error);
         res.status(500).json({ mensaje: 'Error interno al eliminar la cita.' });
+    }
+};
+
+
+exports.cambiarFotoPerfilDoctor = async (req, res) => {
+    const { doctorId } = req.params;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ mensaje: 'No se proporcionó ninguna imagen.' });
+        }
+
+        const [doctores] = await db.query(
+            'SELECT id, usuario_id, foto_perfil FROM doctores WHERE id = ?',
+            [doctorId]
+        );
+
+        if (doctores.length === 0) {
+            if (req.file) {
+                fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                    if (err) console.error('Error al eliminar archivo:', err);
+                });
+            }
+            return res.status(404).json({ mensaje: 'El doctor no existe.' });
+        }
+
+        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
+
+        if (doctores[0].foto_perfil) {
+            const fotoAnterior = doctores[0].foto_perfil.replace('/uploads/perfiles/', '');
+            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
+            if (fs.existsSync(rutaAnterior)) {
+                fs.unlinkSync(rutaAnterior);
+            }
+        }
+
+        await db.query('UPDATE doctores SET foto_perfil = ? WHERE id = ?', [fotoPerfil, doctorId]);
+
+        res.json({
+            mensaje: 'Foto de perfil del doctor actualizada exitosamente.',
+            foto_perfil: fotoPerfil
+        });
+    } catch (error) {
+        if (req.file) {
+            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                if (err) console.error('Error al eliminar archivo:', err);
+            });
+        }
+        console.error('Error al cambiar foto de perfil del doctor:', error);
+        res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });
     }
 };

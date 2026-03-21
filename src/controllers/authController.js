@@ -2,6 +2,8 @@ const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
+const path = require('path');
+const fs = require('fs');
 
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
@@ -212,20 +214,23 @@ exports.obtenerAjustesCuenta = async (req, res) => {
         const usuario = usuarios[0];
         let nombre = '';
         let telefono = '';
+        let foto_perfil = null;
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT nombre FROM doctores WHERE usuario_id = ?',
+                'SELECT nombre, foto_perfil FROM doctores WHERE usuario_id = ?',
                 [usuarioId]
             );
             nombre = doctores[0]?.nombre || '';
+            foto_perfil = doctores[0]?.foto_perfil || null;
         } else if (usuario.rol === 'paciente') {
             const [pacientes] = await db.query(
-                'SELECT nombre, telefono FROM pacientes WHERE usuario_id = ?',
+                'SELECT nombre, telefono, foto_perfil FROM pacientes WHERE usuario_id = ?',
                 [usuarioId]
             );
             nombre = pacientes[0]?.nombre || '';
             telefono = pacientes[0]?.telefono || '';
+            foto_perfil = pacientes[0]?.foto_perfil || null;
         }
 
         res.json({
@@ -234,7 +239,8 @@ exports.obtenerAjustesCuenta = async (req, res) => {
                 username: usuario.username,
                 rol: usuario.rol,
                 nombre,
-                telefono
+                telefono,
+                foto_perfil
             }
         });
     } catch (error) {
@@ -408,5 +414,169 @@ exports.eliminarMiCuenta = async (req, res) => {
     } catch (error) {
         console.error('Error al eliminar cuenta:', error);
         res.status(500).json({ mensaje: 'Error interno al eliminar la cuenta.' });
+    }
+};
+
+
+exports.actualizarPerfilPaciente = async (req, res) => {
+    const usuarioId = req.usuario.id;
+    const { nombre, email } = req.body;
+
+    try {
+        const [usuarios] = await db.query(
+            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
+            [usuarioId]
+        );
+
+        if (usuarios.length === 0 || usuarios[0].rol !== 'paciente') {
+            return res.status(404).json({ mensaje: 'Paciente no encontrado.' });
+        }
+
+        const emailLimpio = email && String(email).trim() ? String(email).trim() : usuarios[0].email;
+
+        const [emailDuplicado] = await db.query(
+            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
+            [emailLimpio, usuarioId]
+        );
+
+        if (emailDuplicado.length > 0) {
+            return res.status(409).json({ mensaje: 'Este correo ya está registrado por otro usuario.' });
+        }
+
+        const [pacientes] = await db.query(
+            'SELECT id, nombre, telefono FROM pacientes WHERE usuario_id = ?',
+            [usuarioId]
+        );
+
+        if (pacientes.length === 0) {
+            return res.status(404).json({ mensaje: 'Perfil de paciente no encontrado.' });
+        }
+
+        const nombreFinal = nombre && String(nombre).trim() ? String(nombre).trim() : pacientes[0].nombre;
+        const telefonoFinal = pacientes[0].telefono;
+
+        await db.query('START TRANSACTION');
+
+        await db.query('UPDATE usuarios SET email = ? WHERE id = ?', [emailLimpio, usuarioId]);
+
+        await db.query(
+            'UPDATE pacientes SET nombre = ?, telefono = ? WHERE usuario_id = ?',
+            [nombreFinal, telefonoFinal, usuarioId]
+        );
+
+        await db.query('COMMIT');
+
+        res.json({
+            mensaje: 'Perfil actualizado exitosamente.',
+            paciente: {
+                id: pacientes[0].id,
+                nombre: nombreFinal,
+                email: emailLimpio,
+                telefono: telefonoFinal || ''
+            }
+        });
+    } catch (error) {
+        await db.query('ROLLBACK');
+        console.error('Error al actualizar perfil de paciente:', error);
+        res.status(500).json({ mensaje: 'Error interno al actualizar el perfil.' });
+    }
+};
+
+
+exports.cambiarFotoPerfil = async (req, res) => {
+    const usuarioId = req.usuario.id;
+    const rol = req.usuario.rol;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ mensaje: 'No se proporcionó ninguna imagen.' });
+        }
+
+        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
+
+        const tabla = rol === 'doctor' ? 'doctores' : 'pacientes';
+        const [perfil] = await db.query(`SELECT id, foto_perfil FROM ${tabla} WHERE usuario_id = ?`, [usuarioId]);
+
+        if (perfil.length === 0) {
+            if (req.file) {
+                fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                    if (err) console.error('Error al eliminar archivo:', err);
+                });
+            }
+            return res.status(404).json({ mensaje: `Perfil de ${rol} no encontrado.` });
+        }
+
+        if (perfil[0].foto_perfil) {
+            const fotoAnterior = perfil[0].foto_perfil.replace('/uploads/perfiles/', '');
+            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
+            if (fs.existsSync(rutaAnterior)) {
+                fs.unlinkSync(rutaAnterior);
+            }
+        }
+
+        await db.query(`UPDATE ${tabla} SET foto_perfil = ? WHERE usuario_id = ?`, [fotoPerfil, usuarioId]);
+
+        res.json({
+            mensaje: 'Foto de perfil actualizada exitosamente.',
+            foto_perfil: fotoPerfil
+        });
+    } catch (error) {
+        if (req.file) {
+            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                if (err) console.error('Error al eliminar archivo:', err);
+            });
+        }
+        console.error('Error al cambiar foto de perfil:', error);
+        res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });
+    }
+};
+
+
+exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
+    const { doctorId } = req.params;
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ mensaje: 'No se proporcionó ninguna imagen.' });
+        }
+
+        const [doctores] = await db.query(
+            'SELECT id, usuario_id, foto_perfil FROM doctores WHERE id = ?',
+            [doctorId]
+        );
+
+        if (doctores.length === 0) {
+            if (req.file) {
+                fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                    if (err) console.error('Error al eliminar archivo:', err);
+                });
+            }
+            return res.status(404).json({ mensaje: 'El doctor no existe.' });
+        }
+
+        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
+
+        if (doctores[0].foto_perfil) {
+            const fotoAnterior = doctores[0].foto_perfil.replace('/uploads/perfiles/', '');
+            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
+            if (fs.existsSync(rutaAnterior)) {
+                fs.unlinkSync(rutaAnterior);
+            }
+        }
+
+        await db.query('UPDATE doctores SET foto_perfil = ? WHERE id = ?', [fotoPerfil, doctorId]);
+
+        res.json({
+            mensaje: 'Foto de perfil del doctor actualizada exitosamente.',
+            foto_perfil: fotoPerfil
+        });
+    } catch (error) {
+        if (req.file) {
+            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
+                if (err) console.error('Error al eliminar archivo:', err);
+            });
+        }
+        console.error('Error al cambiar foto de perfil del doctor:', error);
+        res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });
     }
 };

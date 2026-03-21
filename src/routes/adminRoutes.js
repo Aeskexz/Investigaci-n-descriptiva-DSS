@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
 const { verificarToken, esAdmin } = require('../middleware/auth');
+const upload = require('../middleware/upload');
 
 
 router.use(verificarToken);
@@ -13,6 +14,7 @@ router.get('/doctores', adminController.obtenerDoctores);
 router.post('/doctores', adminController.crearDoctor);
 router.put('/doctores/:id', adminController.editarDoctor);
 router.put('/doctores/:id/restaurar-password', adminController.restaurarPasswordDoctor);
+router.put('/doctores/:id/foto-perfil', upload.single('foto'), adminController.cambiarFotoPerfilDoctor);
 router.delete('/doctores/:id', adminController.eliminarDoctor);
 
 router.get('/pacientes', adminController.obtenerPacientes);
