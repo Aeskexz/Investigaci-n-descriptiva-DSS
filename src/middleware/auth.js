@@ -1,5 +1,6 @@
 const jwt = require('jsonwebtoken');
 const db = require('../db');
+const { getAccountByRoleAndId } = require('../utils/accountDirectory');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
@@ -18,17 +19,19 @@ const verificarToken = async (req, res, next) => {
         const decoded = jwt.verify(token, JWT_SECRET);
 
        
-        const [usuarios] = await db.query(
-            'SELECT id, email, rol FROM usuarios WHERE id = ?',
-            [decoded.id]
-        );
+        const usuario = await getAccountByRoleAndId(db, decoded.rol, decoded.id);
 
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(401).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        
-        req.usuario = usuarios[0];
+        req.usuario = {
+            id: usuario.codigo_id,
+            codigo_id: usuario.codigo_id,
+            email: usuario.email,
+            username: usuario.username,
+            rol: decoded.rol,
+        };
         next();
 
     } catch (error) {

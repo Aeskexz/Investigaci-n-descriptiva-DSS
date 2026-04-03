@@ -1,3 +1,5 @@
+const { usernameExists: usernameExistsAcrossTables } = require('./accountDirectory');
+
 function normalizeUsername(value) {
     const baseValue = String(value || '')
         .trim()
@@ -14,13 +16,9 @@ function normalizeUsername(value) {
 }
 
 async function usernameExists(db, username, excludeUserId = null) {
-    const sql = excludeUserId
-        ? 'SELECT id FROM usuarios WHERE username = ? AND id <> ? LIMIT 1'
-        : 'SELECT id FROM usuarios WHERE username = ? LIMIT 1';
-
-    const params = excludeUserId ? [username, excludeUserId] : [username];
-    const [rows] = await db.query(sql, params);
-    return rows.length > 0;
+    const normalized = normalizeUsername(username);
+    const excludeAccount = excludeUserId && typeof excludeUserId === 'object' ? excludeUserId : null;
+    return usernameExistsAcrossTables(db, normalized, excludeAccount);
 }
 
 async function generateUniqueUsername(db, seed, excludeUserId = null) {

@@ -2,18 +2,22 @@ const db = require('../db');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
+const { generateUniquePublicUserId } = require('../utils/userId');
+const {
+    emailExists,
+    findAccountByIdentifier,
+    getAccountByRoleAndId,
+    getTableByRole,
+} = require('../utils/accountDirectory');
 const path = require('path');
 const fs = require('fs');
 
-
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
-
 
 exports.registrar = async (req, res) => {
     const { email, username, password, rol, nombre, especialidad, telefono } = req.body;
 
     try {
-        
         if (!email || !password || !rol) {
             return res.status(400).json({ mensaje: 'Email, contraseña y rol son requeridos.' });
         }
@@ -22,52 +26,48 @@ exports.registrar = async (req, res) => {
             return res.status(400).json({ mensaje: 'El rol debe ser "paciente" o "doctor".' });
         }
 
-        
-        const [usuariosExistentes] = await db.query('SELECT id FROM usuarios WHERE email = ?', [email]);
-        if (usuariosExistentes.length > 0) {
+        const emailLimpio = String(email).trim();
+
+        if (await emailExists(db, emailLimpio)) {
             return res.status(409).json({ mensaje: 'Este email ya está registrado.' });
         }
 
         const usernameCandidate = username && String(username).trim()
             ? normalizeUsername(username)
-            : await generateUniqueUsername(db, String(email).split('@')[0]);
+            : await generateUniqueUsername(db, String(emailLimpio).split('@')[0]);
 
         if (await usernameExists(db, usernameCandidate)) {
             return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado.' });
         }
 
-        
         const passwordHash = await bcrypt.hash(password, 10);
+        const publicUserId = await generateUniquePublicUserId(db, rol);
 
-        
         await db.query('START TRANSACTION');
 
-        
-        const [resultadoUsuario] = await db.query(
-            'INSERT INTO usuarios (email, username, password, rol) VALUES (?, ?, ?, ?)',
-            [email, usernameCandidate, passwordHash, rol]
-        );
-
-        const usuarioId = resultadoUsuario.insertId;
-
-        
         if (rol === 'doctor') {
             if (!nombre || !especialidad) {
                 await db.query('ROLLBACK');
                 return res.status(400).json({ mensaje: 'Nombre y especialidad son requeridos para doctores.' });
             }
+
             await db.query(
-                'INSERT INTO doctores (usuario_id, nombre, especialidad) VALUES (?, ?, ?)',
-                [usuarioId, nombre, especialidad]
+                `INSERT INTO doctores (codigo_id, email, username, password, nombre, especialidad)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [publicUserId, emailLimpio, usernameCandidate, passwordHash, nombre, especialidad]
             );
-        } else if (rol === 'paciente') {
+        }
+
+        if (rol === 'paciente') {
             if (!nombre) {
                 await db.query('ROLLBACK');
                 return res.status(400).json({ mensaje: 'Nombre es requerido para pacientes.' });
             }
+
             await db.query(
-                'INSERT INTO pacientes (usuario_id, nombre, telefono) VALUES (?, ?, ?)',
-                [usuarioId, nombre, telefono || null]
+                `INSERT INTO pacientes (codigo_id, email, username, password, nombre, telefono)
+                 VALUES (?, ?, ?, ?, ?, ?)`,
+                [publicUserId, emailLimpio, usernameCandidate, passwordHash, nombre, telefono || null]
             );
         }
 
@@ -76,13 +76,12 @@ exports.registrar = async (req, res) => {
         res.status(201).json({
             mensaje: 'Usuario registrado exitosamente.',
             usuario: {
-                id: usuarioId,
-                email,
+                id: publicUserId,
+                email: emailLimpio,
                 username: usernameCandidate,
-                rol
-            }
+                rol,
+            },
         });
-
     } catch (error) {
         await db.query('ROLLBACK');
         console.error('Error al registrar usuario:', error);
@@ -90,44 +89,28 @@ exports.registrar = async (req, res) => {
     }
 };
 
-
 exports.login = async (req, res) => {
     const { identifier, email, username, password } = req.body;
     const loginIdentifier = String(identifier || email || username || '').trim();
 
     try {
-        
         if (!loginIdentifier || !password) {
             return res.status(400).json({ mensaje: 'Correo o nombre de usuario y contraseña son requeridos.' });
         }
 
-        
-        const isEmailLogin = loginIdentifier.includes('@');
-        const [usuarios] = isEmailLogin
-            ? await db.query(
-                'SELECT id, email, username, password, rol FROM usuarios WHERE email = ? LIMIT 1',
-                [loginIdentifier]
-            )
-            : await db.query(
-                'SELECT id, email, username, password, rol FROM usuarios WHERE username = ? LIMIT 1',
-                [normalizeUsername(loginIdentifier)]
-            );
+        const usuario = await findAccountByIdentifier(db, loginIdentifier, normalizeUsername(loginIdentifier));
 
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
         }
 
-        const usuario = usuarios[0];
-
-        
-        const passwordValida = await bcrypt.compare(password, usuario.password);
+        const passwordValida = await bcrypt.compare(password, usuario.password || '');
         if (!passwordValida) {
             return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
         }
 
-        
         const token = jwt.sign(
-            { id: usuario.id, email: usuario.email, rol: usuario.rol },
+            { id: usuario.codigo_id, email: usuario.email, rol: usuario.rol },
             JWT_SECRET,
             { expiresIn: '24h' }
         );
@@ -136,97 +119,85 @@ exports.login = async (req, res) => {
             mensaje: 'Login exitoso.',
             token,
             usuario: {
-                id: usuario.id,
+                id: usuario.codigo_id,
                 email: usuario.email,
                 username: usuario.username,
-                rol: usuario.rol
-            }
+                rol: usuario.rol,
+            },
         });
-
     } catch (error) {
         console.error('Error al hacer login:', error);
         res.status(500).json({ mensaje: 'Error interno al hacer login.' });
     }
 };
 
-
 exports.obtenerPerfil = async (req, res) => {
     try {
-        const usuarioId = req.usuario.id;
+        const usuario = await getAccountByRoleAndId(db, req.usuario.rol, req.usuario.id);
 
-        const [usuarios] = await db.query(
-            'SELECT id, email, username, rol, creado_en FROM usuarios WHERE id = ?',
-            [usuarioId]
-        );
-
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        const usuario = usuarios[0];
         let perfil = null;
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT id, nombre, especialidad FROM doctores WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT codigo_id AS id, nombre, especialidad FROM doctores WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
-            perfil = doctores[0];
-        } else if (usuario.rol === 'paciente') {
+            perfil = doctores[0] || null;
+        }
+
+        if (usuario.rol === 'paciente') {
             const [pacientes] = await db.query(
-                'SELECT id, nombre, telefono FROM pacientes WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT codigo_id AS id, nombre, telefono FROM pacientes WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
-            perfil = pacientes[0];
+            perfil = pacientes[0] || null;
         }
 
         res.json({
             usuario: {
-                id: usuario.id,
+                id: usuario.codigo_id,
                 email: usuario.email,
                 username: usuario.username,
                 rol: usuario.rol,
-                creado_en: usuario.creado_en
+                creado_en: usuario.creado_en,
             },
-            perfil
+            perfil,
         });
-
     } catch (error) {
         console.error('Error al obtener perfil:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener el perfil.' });
     }
 };
 
-
 exports.obtenerAjustesCuenta = async (req, res) => {
     try {
-        const usuarioId = req.usuario.id;
+        const usuario = await getAccountByRoleAndId(db, req.usuario.rol, req.usuario.id);
 
-        const [usuarios] = await db.query(
-            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
-            [usuarioId]
-        );
-
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        const usuario = usuarios[0];
         let nombre = '';
         let telefono = '';
         let foto_perfil = null;
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT nombre, foto_perfil FROM doctores WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT nombre, foto_perfil FROM doctores WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
             nombre = doctores[0]?.nombre || '';
             foto_perfil = doctores[0]?.foto_perfil || null;
-        } else if (usuario.rol === 'paciente') {
+        }
+
+        if (usuario.rol === 'paciente') {
             const [pacientes] = await db.query(
-                'SELECT nombre, telefono, foto_perfil FROM pacientes WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT nombre, telefono, foto_perfil FROM pacientes WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
             nombre = pacientes[0]?.nombre || '';
             telefono = pacientes[0]?.telefono || '';
@@ -240,8 +211,8 @@ exports.obtenerAjustesCuenta = async (req, res) => {
                 rol: usuario.rol,
                 nombre,
                 telefono,
-                foto_perfil
-            }
+                foto_perfil,
+            },
         });
     } catch (error) {
         console.error('Error al obtener ajustes de cuenta:', error);
@@ -249,9 +220,7 @@ exports.obtenerAjustesCuenta = async (req, res) => {
     }
 };
 
-
 exports.actualizarAjustesCuenta = async (req, res) => {
-    const usuarioId = req.usuario.id;
     const { email, username, nombre, telefono } = req.body;
 
     try {
@@ -259,25 +228,15 @@ exports.actualizarAjustesCuenta = async (req, res) => {
             return res.status(400).json({ mensaje: 'El correo electrónico es requerido.' });
         }
 
-        const emailLimpio = String(email).trim();
+        const usuario = await getAccountByRoleAndId(db, req.usuario.rol, req.usuario.id);
 
-        const [usuarios] = await db.query(
-            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
-            [usuarioId]
-        );
-
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        const usuario = usuarios[0];
+        const emailLimpio = String(email).trim();
 
-        const [emailDuplicado] = await db.query(
-            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
-            [emailLimpio, usuarioId]
-        );
-
-        if (emailDuplicado.length > 0) {
+        if (await emailExists(db, emailLimpio, { rol: usuario.rol, id: usuario.codigo_id })) {
             return res.status(409).json({ mensaje: 'Este correo ya está registrado por otro usuario.' });
         }
 
@@ -285,22 +244,19 @@ exports.actualizarAjustesCuenta = async (req, res) => {
             ? normalizeUsername(username)
             : usuario.username;
 
-        const usernameDuplicado = await usernameExists(db, usernameLimpio, usuarioId);
-        if (usernameDuplicado) {
+        if (await usernameExists(db, usernameLimpio, { rol: usuario.rol, id: usuario.codigo_id })) {
             return res.status(409).json({ mensaje: 'Este nombre de usuario ya está registrado por otro usuario.' });
         }
 
         await db.query('START TRANSACTION');
-
-        await db.query('UPDATE usuarios SET email = ?, username = ? WHERE id = ?', [emailLimpio, usernameLimpio, usuarioId]);
 
         let nombreFinal = '';
         let telefonoFinal = '';
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT nombre FROM doctores WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT nombre FROM doctores WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
 
             if (doctores.length === 0) {
@@ -311,13 +267,15 @@ exports.actualizarAjustesCuenta = async (req, res) => {
             nombreFinal = (typeof nombre === 'string' && nombre.trim()) ? nombre.trim() : doctores[0].nombre;
 
             await db.query(
-                'UPDATE doctores SET nombre = ? WHERE usuario_id = ?',
-                [nombreFinal, usuarioId]
+                'UPDATE doctores SET email = ?, username = ?, nombre = ? WHERE codigo_id = ?',
+                [emailLimpio, usernameLimpio, nombreFinal, usuario.codigo_id]
             );
-        } else if (usuario.rol === 'paciente') {
+        }
+
+        if (usuario.rol === 'paciente') {
             const [pacientes] = await db.query(
-                'SELECT nombre, telefono FROM pacientes WHERE usuario_id = ?',
-                [usuarioId]
+                'SELECT nombre, telefono FROM pacientes WHERE codigo_id = ?',
+                [usuario.codigo_id]
             );
 
             if (pacientes.length === 0) {
@@ -331,8 +289,15 @@ exports.actualizarAjustesCuenta = async (req, res) => {
                 : (pacientes[0].telefono || null);
 
             await db.query(
-                'UPDATE pacientes SET nombre = ?, telefono = ? WHERE usuario_id = ?',
-                [nombreFinal, telefonoFinal, usuarioId]
+                'UPDATE pacientes SET email = ?, username = ?, nombre = ?, telefono = ? WHERE codigo_id = ?',
+                [emailLimpio, usernameLimpio, nombreFinal, telefonoFinal, usuario.codigo_id]
+            );
+        }
+
+        if (usuario.rol === 'admin') {
+            await db.query(
+                'UPDATE admins SET email = ?, username = ? WHERE codigo_id = ?',
+                [emailLimpio, usernameLimpio, usuario.codigo_id]
             );
         }
 
@@ -341,13 +306,13 @@ exports.actualizarAjustesCuenta = async (req, res) => {
         res.json({
             mensaje: 'Ajustes de cuenta actualizados exitosamente.',
             usuario: {
-                id: usuarioId,
+                id: usuario.codigo_id,
                 email: emailLimpio,
                 username: usernameLimpio,
                 rol: usuario.rol,
                 nombre: nombreFinal,
-                telefono: telefonoFinal || ''
-            }
+                telefono: telefonoFinal || '',
+            },
         });
     } catch (error) {
         await db.query('ROLLBACK');
@@ -356,9 +321,7 @@ exports.actualizarAjustesCuenta = async (req, res) => {
     }
 };
 
-
 exports.cambiarPasswordCuenta = async (req, res) => {
-    const usuarioId = req.usuario.id;
     const { passwordActual, nuevaPassword, confirmarPassword } = req.body;
 
     try {
@@ -374,23 +337,21 @@ exports.cambiarPasswordCuenta = async (req, res) => {
             return res.status(400).json({ mensaje: 'La nueva contraseña y su confirmación no coinciden.' });
         }
 
-        const [usuarios] = await db.query(
-            'SELECT id, password FROM usuarios WHERE id = ?',
-            [usuarioId]
-        );
+        const usuario = await getAccountByRoleAndId(db, req.usuario.rol, req.usuario.id, true);
 
-        if (usuarios.length === 0) {
+        if (!usuario) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
         }
 
-        const passwordValida = await bcrypt.compare(passwordActual, usuarios[0].password);
+        const passwordValida = await bcrypt.compare(passwordActual, usuario.password || '');
         if (!passwordValida) {
             return res.status(401).json({ mensaje: 'La contraseña actual es incorrecta.' });
         }
 
         const passwordHash = await bcrypt.hash(String(nuevaPassword), 10);
+        const tabla = getTableByRole(usuario.rol);
 
-        await db.query('UPDATE usuarios SET password = ? WHERE id = ?', [passwordHash, usuarioId]);
+        await db.query(`UPDATE ${tabla} SET password = ? WHERE codigo_id = ?`, [passwordHash, usuario.codigo_id]);
 
         res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
     } catch (error) {
@@ -399,12 +360,10 @@ exports.cambiarPasswordCuenta = async (req, res) => {
     }
 };
 
-
 exports.eliminarMiCuenta = async (req, res) => {
-    const usuarioId = req.usuario.id;
-
     try {
-        const [resultado] = await db.query('DELETE FROM usuarios WHERE id = ?', [usuarioId]);
+        const tabla = getTableByRole(req.usuario.rol);
+        const [resultado] = await db.query(`DELETE FROM ${tabla} WHERE codigo_id = ?`, [req.usuario.id]);
 
         if (resultado.affectedRows === 0) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
@@ -417,74 +376,54 @@ exports.eliminarMiCuenta = async (req, res) => {
     }
 };
 
-
 exports.actualizarPerfilPaciente = async (req, res) => {
-    const usuarioId = req.usuario.id;
     const { nombre, email } = req.body;
 
     try {
-        const [usuarios] = await db.query(
-            'SELECT id, email, username, rol FROM usuarios WHERE id = ?',
-            [usuarioId]
-        );
-
-        if (usuarios.length === 0 || usuarios[0].rol !== 'paciente') {
-            return res.status(404).json({ mensaje: 'Paciente no encontrado.' });
-        }
-
-        const emailLimpio = email && String(email).trim() ? String(email).trim() : usuarios[0].email;
-
-        const [emailDuplicado] = await db.query(
-            'SELECT id FROM usuarios WHERE email = ? AND id <> ?',
-            [emailLimpio, usuarioId]
-        );
-
-        if (emailDuplicado.length > 0) {
-            return res.status(409).json({ mensaje: 'Este correo ya está registrado por otro usuario.' });
+        if (req.usuario.rol !== 'paciente') {
+            return res.status(403).json({ mensaje: 'Solo los pacientes pueden actualizar este perfil.' });
         }
 
         const [pacientes] = await db.query(
-            'SELECT id, nombre, telefono FROM pacientes WHERE usuario_id = ?',
-            [usuarioId]
+            'SELECT codigo_id, email, nombre, telefono FROM pacientes WHERE codigo_id = ?',
+            [req.usuario.id]
         );
 
         if (pacientes.length === 0) {
-            return res.status(404).json({ mensaje: 'Perfil de paciente no encontrado.' });
+            return res.status(404).json({ mensaje: 'Paciente no encontrado.' });
         }
 
-        const nombreFinal = nombre && String(nombre).trim() ? String(nombre).trim() : pacientes[0].nombre;
-        const telefonoFinal = pacientes[0].telefono;
+        const paciente = pacientes[0];
+        const emailLimpio = email && String(email).trim() ? String(email).trim() : paciente.email;
 
-        await db.query('START TRANSACTION');
+        if (await emailExists(db, emailLimpio, { rol: 'paciente', id: paciente.codigo_id })) {
+            return res.status(409).json({ mensaje: 'Este correo ya está registrado por otro usuario.' });
+        }
 
-        await db.query('UPDATE usuarios SET email = ? WHERE id = ?', [emailLimpio, usuarioId]);
+        const nombreFinal = nombre && String(nombre).trim() ? String(nombre).trim() : paciente.nombre;
+        const telefonoFinal = paciente.telefono;
 
         await db.query(
-            'UPDATE pacientes SET nombre = ?, telefono = ? WHERE usuario_id = ?',
-            [nombreFinal, telefonoFinal, usuarioId]
+            'UPDATE pacientes SET email = ?, nombre = ?, telefono = ? WHERE codigo_id = ?',
+            [emailLimpio, nombreFinal, telefonoFinal, paciente.codigo_id]
         );
-
-        await db.query('COMMIT');
 
         res.json({
             mensaje: 'Perfil actualizado exitosamente.',
             paciente: {
-                id: pacientes[0].id,
+                id: paciente.codigo_id,
                 nombre: nombreFinal,
                 email: emailLimpio,
-                telefono: telefonoFinal || ''
-            }
+                telefono: telefonoFinal || '',
+            },
         });
     } catch (error) {
-        await db.query('ROLLBACK');
         console.error('Error al actualizar perfil de paciente:', error);
         res.status(500).json({ mensaje: 'Error interno al actualizar el perfil.' });
     }
 };
 
-
 exports.cambiarFotoPerfil = async (req, res) => {
-    const usuarioId = req.usuario.id;
     const rol = req.usuario.rol;
 
     try {
@@ -492,10 +431,9 @@ exports.cambiarFotoPerfil = async (req, res) => {
             return res.status(400).json({ mensaje: 'No se proporcionó ninguna imagen.' });
         }
 
+        const tabla = getTableByRole(rol);
         const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
-
-        const tabla = rol === 'doctor' ? 'doctores' : 'pacientes';
-        const [perfil] = await db.query(`SELECT id, foto_perfil FROM ${tabla} WHERE usuario_id = ?`, [usuarioId]);
+        const [perfil] = await db.query(`SELECT codigo_id, foto_perfil FROM ${tabla} WHERE codigo_id = ?`, [req.usuario.id]);
 
         if (perfil.length === 0) {
             if (req.file) {
@@ -514,11 +452,11 @@ exports.cambiarFotoPerfil = async (req, res) => {
             }
         }
 
-        await db.query(`UPDATE ${tabla} SET foto_perfil = ? WHERE usuario_id = ?`, [fotoPerfil, usuarioId]);
+        await db.query(`UPDATE ${tabla} SET foto_perfil = ? WHERE codigo_id = ?`, [fotoPerfil, req.usuario.id]);
 
         res.json({
             mensaje: 'Foto de perfil actualizada exitosamente.',
-            foto_perfil: fotoPerfil
+            foto_perfil: fotoPerfil,
         });
     } catch (error) {
         if (req.file) {
@@ -531,7 +469,6 @@ exports.cambiarFotoPerfil = async (req, res) => {
     }
 };
 
-
 exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
     const { doctorId } = req.params;
 
@@ -541,7 +478,7 @@ exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
         }
 
         const [doctores] = await db.query(
-            'SELECT id, usuario_id, foto_perfil FROM doctores WHERE id = ?',
+            'SELECT codigo_id, foto_perfil FROM doctores WHERE codigo_id = ?',
             [doctorId]
         );
 
@@ -564,11 +501,11 @@ exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
             }
         }
 
-        await db.query('UPDATE doctores SET foto_perfil = ? WHERE id = ?', [fotoPerfil, doctorId]);
+        await db.query('UPDATE doctores SET foto_perfil = ? WHERE codigo_id = ?', [fotoPerfil, doctorId]);
 
         res.json({
             mensaje: 'Foto de perfil del doctor actualizada exitosamente.',
-            foto_perfil: fotoPerfil
+            foto_perfil: fotoPerfil,
         });
     } catch (error) {
         if (req.file) {

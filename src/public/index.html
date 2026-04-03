@@ -452,6 +452,72 @@
             margin-bottom: 8px;
         }
 
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 16px;
+        }
+
+        .modal-box {
+            background: var(--surface);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 560px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 2px solid var(--border);
+        }
+
+        .modal-close {
+            background: none;
+            border: none;
+            font-size: 26px;
+            cursor: pointer;
+            color: var(--text-muted);
+            line-height: 1;
+            padding: 4px;
+        }
+
+        .modal-close:hover {
+            color: var(--text-primary);
+        }
+
+        .modal-section {
+            margin-bottom: 24px;
+            padding-bottom: 24px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .modal-section:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+
+        .modal-section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 14px;
+        }
+
         
         .result-box {
             margin-top: 24px;
@@ -686,7 +752,7 @@
 
                 <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
 
-                <button class="btn btn-danger" onclick="eliminarMiCuenta()">Eliminar cuenta</button>
+                <button id="deleteAccountBtn" class="btn btn-danger" onclick="eliminarMiCuenta()">Eliminar cuenta</button>
             </div>
 
             
@@ -850,6 +916,16 @@
         </div>
     </div>
 
+    <div id="adminEditModal" class="modal-overlay hidden">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h3 id="adminModalTitle">Editar</h3>
+                <button class="modal-close" onclick="cerrarAdminModal()">&times;</button>
+            </div>
+            <div id="adminModalBody"></div>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'http://localhost:3000/api';
         let token = localStorage.getItem('token');
@@ -885,6 +961,7 @@
             document.getElementById('settingsPanel').classList.add('hidden');
             document.getElementById('userEmail').textContent = usuario.email;
             document.getElementById('userRole').textContent = usuario.rol.toUpperCase();
+            document.getElementById('deleteAccountBtn').style.display = usuario.rol === 'admin' ? 'none' : 'inline-flex';
 
             if (usuario.rol === 'admin') {
                 document.getElementById('adminPanel').classList.remove('hidden');
@@ -1086,6 +1163,11 @@
         }
 
         async function eliminarMiCuenta() {
+            if (usuario && usuario.rol === 'admin') {
+                alert('La cuenta de administrador no se puede eliminar.');
+                return;
+            }
+
             if (!confirm('¿Seguro que deseas eliminar tu cuenta? Esta acción no se puede deshacer.')) return;
 
             try {
@@ -1161,7 +1243,7 @@
                 container.innerHTML = doctores.length === 0
                     ? '<p style="color: var(--text-muted); text-align: center;">No hay doctores disponibles</p>'
                     : doctores.map(d => `
-                        <div class="doctor-item" onclick="selectDoctor(${d.id}, '${d.nombre}')">
+                        <div class="doctor-item" onclick='selectDoctor(${JSON.stringify(d.id)}, ${JSON.stringify(d.nombre)}, this)'>
                             <img src="${d.foto_perfil ? d.foto_perfil : '/uploads/perfiles/default.png'}" alt="${d.nombre}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-right: 12px;">
                             <div class="doctor-info">
                                 <div class="doctor-name">${d.nombre}</div>
@@ -1174,12 +1256,12 @@
             }
         }
 
-        function selectDoctor(id, nombre) {
+        function selectDoctor(id, nombre, selectedEl) {
             doctorSeleccionadoId = id;
             doctorSeleccionadoNombre = nombre;
             
             document.querySelectorAll('.doctor-item').forEach(el => el.classList.remove('selected'));
-            event.currentTarget.classList.add('selected');
+            if (selectedEl) selectedEl.classList.add('selected');
             
             
             document.getElementById('doctorSeleccionado').innerHTML = 
@@ -1324,7 +1406,7 @@
                         </div>
                         ${usuario.rol === 'admin' || usuario.rol === 'paciente' ? `
                             <div class="appointment-actions">
-                                <button class="btn btn-danger btn-sm" onclick="cancelarCita(${c.id})">Cancelar</button>
+                                <button class="btn btn-danger btn-sm" onclick='cancelarCita(${JSON.stringify(c.id)})'>Cancelar</button>
                             </div>
                         ` : ''}
                     </div>
@@ -1377,11 +1459,11 @@
                         </div>
                         <div class="appointment-actions">
                             ${c.estado === 'pendiente' ? `
-                                <button class="btn btn-secondary btn-sm" onclick="actualizarEstadoCita(${c.id}, 'confirmada')">Aceptar</button>
-                                <button class="btn btn-danger btn-sm" onclick="actualizarEstadoCita(${c.id}, 'cancelada')">Cancelar</button>
+                                <button class="btn btn-secondary btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "confirmada")'>Aceptar</button>
+                                <button class="btn btn-danger btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "cancelada")'>Cancelar</button>
                             ` : ''}
                             ${c.estado === 'confirmada' ? `
-                                <button class="btn btn-success btn-sm" onclick="actualizarEstadoCita(${c.id}, 'completada')">Finalizar</button>
+                                <button class="btn btn-success btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "completada")'>Finalizar</button>
                             ` : ''}
                             ${c.estado === 'cancelada' || c.estado === 'completada' ? `
                                 <span style="color: var(--text-muted); font-size: 13px;">Cita ${c.estado}</span>
@@ -1442,10 +1524,7 @@
                             </div>
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick='editarDoctor(${d.id}, ${JSON.stringify(d.email)}, ${JSON.stringify(d.username)}, ${JSON.stringify(d.nombre)}, ${JSON.stringify(d.especialidad)})'>Editar</button>
-                            <button class="btn btn-secondary btn-sm" onclick="cambiarFotoDoctorAdmin(${d.id}, '${d.nombre}')">Cambiar foto</button>
-                            <button class="btn btn-secondary btn-sm" onclick='restaurarPasswordDoctor(${d.id}, ${JSON.stringify(d.nombre)})'>Restaurar contraseña</button>
-                            <button class="btn btn-danger btn-sm" onclick="eliminarDoctor(${d.id})">Eliminar</button>
+                            <button class="btn btn-outline btn-sm" onclick='editarDoctor(${JSON.stringify(d.id)}, ${JSON.stringify(d.email)}, ${JSON.stringify(d.username)}, ${JSON.stringify(d.nombre)}, ${JSON.stringify(d.especialidad)}, ${JSON.stringify(d.foto_perfil || "")})'>Editar</button>
                         </div>
                     </div>
                 `).join('') || '<p>No hay doctores registrados</p>';
@@ -1468,9 +1547,7 @@
                             <br><small>${p.email} · @${p.username}${p.telefono ? ' · ' + p.telefono : ''}</small>
                         </div>
                         <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick='editarPaciente(${p.id}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
-                            <button class="btn btn-secondary btn-sm" onclick='restaurarPasswordPaciente(${p.id}, ${JSON.stringify(p.nombre)})'>Restaurar contraseña</button>
-                            <button class="btn btn-danger btn-sm" onclick="eliminarPaciente(${p.id})">Eliminar</button>
+                            <button class="btn btn-outline btn-sm" onclick='editarPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
                         </div>
                     </div>
                 `).join('') || '<p>No hay pacientes registrados</p>';
@@ -1508,221 +1585,281 @@
             }
         }
 
-        async function eliminarDoctor(id) {
-            if (!confirm('¿Eliminar este doctor?')) return;
-            try {
-                await fetch(`${API_URL}/admin/doctores/${id}`, {
-                    method: 'DELETE',
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                cargarAdminDoctors();
-            } catch (err) {
-                alert('No se pudo eliminar');
-            }
+        let _adminModalId = null;
+
+        function cerrarAdminModal() {
+            document.getElementById('adminEditModal').classList.add('hidden');
+            document.getElementById('adminModalBody').innerHTML = '';
+            _adminModalId = null;
         }
 
-        async function editarDoctor(id, emailActual, usernameActual, nombreActual, especialidadActual) {
-            const email = prompt('Email del doctor:', emailActual);
-            if (email === null) return;
+        function _abrirAdminModal(titulo) {
+            document.getElementById('adminModalTitle').textContent = titulo;
+            document.getElementById('adminEditModal').classList.remove('hidden');
+        }
 
-            const username = prompt('Nombre de usuario del doctor:', usernameActual);
-            if (username === null) return;
+        function _esc(str) {
+            return String(str || '')
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#39;');
+        }
 
-            const nombre = prompt('Nombre del doctor:', nombreActual);
-            if (nombre === null) return;
+        function editarDoctor(id, emailActual, usernameActual, nombreActual, especialidadActual, fotoActual) {
+            _adminModalId = id;
+            _abrirAdminModal('Editar Doctor');
+            document.getElementById('adminModalBody').innerHTML = `
+                <div class="modal-section">
+                    <div class="modal-section-title">Datos generales</div>
+                    <form onsubmit="guardarDatosDoctor(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre completo</label>
+                                <input type="text" id="mDocNombre" value="${_esc(nombreActual)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Especialidad</label>
+                                <input type="text" id="mDocEspecialidad" value="${_esc(especialidadActual)}" required>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="mDocEmail" value="${_esc(emailActual)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre de usuario</label>
+                                <input type="text" id="mDocUsername" value="${_esc(usernameActual)}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </form>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title">Foto de perfil</div>
+                    <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;">
+                        <img id="mDocFotoPreview" src="${_esc(fotoActual || '/uploads/perfiles/default.png')}" alt="Foto doctor" style="width:64px;height:64px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);">
+                        <input type="file" id="mDocFotoInput" accept="image/*" onchange="previewMDocFoto(this)">
+                        <button type="button" class="btn btn-secondary" onclick="subirFotoDocModal()">Cambiar foto</button>
+                    </div>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title">Contraseña</div>
+                    <form onsubmit="restaurarPwdDocModal(event)" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1;margin:0;">
+                            <label>Nueva contraseña <small style="color:var(--text-muted);font-weight:400;">(vacío = "doctor123")</small></label>
+                            <input type="password" id="mDocNuevaPwd" placeholder="Mínimo 6 caracteres" minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="margin-bottom:20px;">Restaurar contraseña</button>
+                    </form>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title" style="color:var(--error);">Zona de peligro</div>
+                    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">Elimina al doctor permanentemente.</p>
+                    <button type="button" class="btn btn-danger" onclick="eliminarDocModal()">Eliminar doctor</button>
+                </div>
+            `;
+        }
 
-            const especialidad = prompt('Especialidad del doctor:', especialidadActual);
-            if (especialidad === null) return;
-
-            if (!email.trim() || !username.trim() || !nombre.trim() || !especialidad.trim()) {
-                alert('Email, nombre de usuario, nombre y especialidad son requeridos.');
-                return;
-            }
-
+        async function guardarDatosDoctor(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('mDocNombre').value.trim();
+            const especialidad = document.getElementById('mDocEspecialidad').value.trim();
+            const email = document.getElementById('mDocEmail').value.trim();
+            const username = document.getElementById('mDocUsername').value.trim();
             try {
-                const res = await fetch(`${API_URL}/admin/doctores/${id}`, {
+                const res = await fetch(`${API_URL}/admin/doctores/${_adminModalId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        email: email.trim(),
-                        username: username.trim(),
-                        nombre: nombre.trim(),
-                        especialidad: especialidad.trim()
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ nombre, especialidad, email, username })
                 });
-
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.mensaje || 'No se pudo editar el doctor.');
-
-                alert('Doctor actualizado exitosamente.');
+                cerrarAdminModal();
                 cargarAdminDoctors();
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        async function restaurarPasswordDoctor(id, nombreDoctor) {
-            const nuevaPassword = prompt(
-                `Nueva contraseña para ${nombreDoctor}.\nDeja vacío para usar la temporal "doctor123":`,
-                ''
-            );
+        function previewMDocFoto(input) {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                document.getElementById('mDocFotoPreview').src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
 
-            if (nuevaPassword === null) return;
-
-            if (nuevaPassword.trim() && nuevaPassword.trim().length < 6) {
-                alert('La contraseña debe tener al menos 6 caracteres.');
+        async function subirFotoDocModal() {
+            const input = document.getElementById('mDocFotoInput');
+            const file = input.files && input.files[0];
+            if (!file) {
+                alert('Selecciona una imagen primero.');
                 return;
             }
 
-            if (!confirm(`¿Deseas restaurar la contraseña del doctor ${nombreDoctor}?`)) return;
+            const formData = new FormData();
+            formData.append('foto', file);
 
             try {
-                const body = nuevaPassword.trim()
-                    ? { nuevaPassword: nuevaPassword.trim() }
-                    : {};
-
-                const res = await fetch(`${API_URL}/admin/doctores/${id}/restaurar-password`, {
+                const res = await fetch(`${API_URL}/admin/doctores/${_adminModalId}/foto-perfil`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(body)
+                    headers: { 'Authorization': `Bearer ${token}` },
+                    body: formData
                 });
-
                 const data = await res.json();
-                if (!res.ok) throw new Error(data.mensaje || 'No se pudo restaurar la contraseña.');
-
-                alert(`Contraseña restaurada. Nueva contraseña: ${data.passwordTemporal}`);
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo cambiar la foto.');
+                alert('Foto de perfil actualizada exitosamente.');
+                cargarAdminDoctors();
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        function cambiarFotoDoctorAdmin(id, nombreDoctor) {
-            const input = document.createElement('input');
-            input.type = 'file';
-            input.accept = 'image/*';
-            input.onchange = async (e) => {
-                const file = e.target.files[0];
-                if (!file) return;
-
-                const formData = new FormData();
-                formData.append('foto', file);
-
-                try {
-                    const res = await fetch(`${API_URL}/admin/doctores/${id}/foto-perfil`, {
-                        method: 'PUT',
-                        headers: {
-                            'Authorization': `Bearer ${token}`
-                        },
-                        body: formData
-                    });
-
-                    const data = await res.json();
-                    if (!res.ok) throw new Error(data.mensaje || 'No se pudo cambiar la foto.');
-
-                    alert('Foto de perfil actualizada exitosamente.');
-                    cargarAdminDoctors();
-                } catch (err) {
-                    alert(err.message);
-                }
-            };
-            input.click();
+        async function restaurarPwdDocModal(e) {
+            e.preventDefault();
+            const pwd = (document.getElementById('mDocNuevaPwd').value || '').trim();
+            if (pwd && pwd.length < 6) {
+                alert('La contraseña debe tener al menos 6 caracteres.');
+                return;
+            }
+            try {
+                const res = await fetch(`${API_URL}/admin/doctores/${_adminModalId}/restaurar-password`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ nuevaPassword: pwd || 'doctor123' })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo restaurar la contraseña.');
+                alert(`Contraseña restaurada. Nueva contraseña: ${data.passwordTemporal}`);
+                document.getElementById('mDocNuevaPwd').value = '';
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
-        async function eliminarPaciente(id) {
-            if (!confirm('¿Eliminar este paciente?')) return;
+        async function eliminarDocModal() {
+            if (!confirm('¿Eliminar este doctor? Esta acción no se puede deshacer.')) return;
             try {
-                await fetch(`${API_URL}/admin/pacientes/${id}`, {
+                const res = await fetch(`${API_URL}/admin/doctores/${_adminModalId}`, {
                     method: 'DELETE',
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                cargarAdminPatients();
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo eliminar el doctor.');
+                cerrarAdminModal();
+                cargarAdminDoctors();
             } catch (err) {
-                alert('No se pudo eliminar');
+                alert(err.message);
             }
         }
 
-        async function editarPaciente(id, emailActual, usernameActual, nombreActual, telefonoActual) {
-            const email = prompt('Email del paciente:', emailActual);
-            if (email === null) return;
+        function editarPaciente(id, emailActual, usernameActual, nombreActual, telefonoActual) {
+            _adminModalId = id;
+            _abrirAdminModal('Editar Paciente');
+            document.getElementById('adminModalBody').innerHTML = `
+                <div class="modal-section">
+                    <div class="modal-section-title">Datos generales</div>
+                    <form onsubmit="guardarDatosPaciente(event)">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Nombre completo</label>
+                                <input type="text" id="mPacNombre" value="${_esc(nombreActual)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Teléfono</label>
+                                <input type="tel" id="mPacTelefono" value="${_esc(telefonoActual)}">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>Email</label>
+                                <input type="email" id="mPacEmail" value="${_esc(emailActual)}" required>
+                            </div>
+                            <div class="form-group">
+                                <label>Nombre de usuario</label>
+                                <input type="text" id="mPacUsername" value="${_esc(usernameActual)}">
+                            </div>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+                    </form>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title">Contraseña</div>
+                    <form onsubmit="restaurarPwdPacModal(event)" style="display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;">
+                        <div class="form-group" style="flex:1;margin:0;">
+                            <label>Nueva contraseña <small style="color:var(--text-muted);font-weight:400;">(vacío = "paciente123")</small></label>
+                            <input type="password" id="mPacNuevaPwd" placeholder="Mínimo 6 caracteres" minlength="6">
+                        </div>
+                        <button type="submit" class="btn btn-secondary" style="margin-bottom:20px;">Restaurar contraseña</button>
+                    </form>
+                </div>
+                <div class="modal-section">
+                    <div class="modal-section-title" style="color:var(--error);">Zona de peligro</div>
+                    <p style="font-size:14px;color:var(--text-secondary);margin-bottom:12px;">Elimina al paciente permanentemente.</p>
+                    <button type="button" class="btn btn-danger" onclick="eliminarPacModal()">Eliminar paciente</button>
+                </div>
+            `;
+        }
 
-            const username = prompt('Nombre de usuario del paciente:', usernameActual);
-            if (username === null) return;
-
-            const nombre = prompt('Nombre del paciente:', nombreActual);
-            if (nombre === null) return;
-
-            const telefono = prompt('Teléfono del paciente (opcional):', telefonoActual || '');
-            if (telefono === null) return;
-
-            if (!email.trim() || !username.trim() || !nombre.trim()) {
-                alert('Email, nombre de usuario y nombre son requeridos.');
-                return;
-            }
-
+        async function guardarDatosPaciente(e) {
+            e.preventDefault();
+            const nombre = document.getElementById('mPacNombre').value.trim();
+            const telefono = document.getElementById('mPacTelefono').value.trim();
+            const email = document.getElementById('mPacEmail').value.trim();
+            const username = document.getElementById('mPacUsername').value.trim();
             try {
-                const res = await fetch(`${API_URL}/admin/pacientes/${id}`, {
+                const res = await fetch(`${API_URL}/admin/pacientes/${_adminModalId}`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        email: email.trim(),
-                        username: username.trim(),
-                        nombre: nombre.trim(),
-                        telefono: telefono.trim()
-                    })
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ nombre, telefono, email, username })
                 });
-
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.mensaje || 'No se pudo editar el paciente.');
-
-                alert('Paciente actualizado exitosamente.');
+                cerrarAdminModal();
                 cargarAdminPatients();
             } catch (err) {
                 alert(err.message);
             }
         }
 
-        async function restaurarPasswordPaciente(id, nombrePaciente) {
-            const nuevaPassword = prompt(
-                `Nueva contraseña para ${nombrePaciente}.\nDeja vacío para usar la temporal "paciente123":`,
-                ''
-            );
-
-            if (nuevaPassword === null) return;
-
-            if (nuevaPassword.trim() && nuevaPassword.trim().length < 6) {
+        async function restaurarPwdPacModal(e) {
+            e.preventDefault();
+            const pwd = (document.getElementById('mPacNuevaPwd').value || '').trim();
+            if (pwd && pwd.length < 6) {
                 alert('La contraseña debe tener al menos 6 caracteres.');
                 return;
             }
-
-            if (!confirm(`¿Deseas restaurar la contraseña del paciente ${nombrePaciente}?`)) return;
-
             try {
-                const body = nuevaPassword.trim()
-                    ? { nuevaPassword: nuevaPassword.trim() }
-                    : {};
-
-                const res = await fetch(`${API_URL}/admin/pacientes/${id}/restaurar-password`, {
+                const res = await fetch(`${API_URL}/admin/pacientes/${_adminModalId}/restaurar-password`, {
                     method: 'PUT',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${token}`
-                    },
-                    body: JSON.stringify(body)
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ nuevaPassword: pwd || 'paciente123' })
                 });
-
                 const data = await res.json();
                 if (!res.ok) throw new Error(data.mensaje || 'No se pudo restaurar la contraseña.');
-
                 alert(`Contraseña restaurada. Nueva contraseña: ${data.passwordTemporal}`);
+                document.getElementById('mPacNuevaPwd').value = '';
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function eliminarPacModal() {
+            if (!confirm('¿Eliminar este paciente? Esta acción no se puede deshacer.')) return;
+            try {
+                const res = await fetch(`${API_URL}/admin/pacientes/${_adminModalId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo eliminar el paciente.');
+                cerrarAdminModal();
+                cargarAdminPatients();
             } catch (err) {
                 alert(err.message);
             }
@@ -1730,3 +1867,4 @@
     </script>
 </body>
 </html>
+
