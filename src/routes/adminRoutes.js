@@ -10,6 +10,7 @@ router.use(esAdmin);
 
 
 router.get('/usuarios', adminController.obtenerUsuarios);
+router.get('/historial-cambios', adminController.obtenerHistorialCambios);
 router.get('/doctores', adminController.obtenerDoctores);
 router.post('/doctores', adminController.crearDoctor);
 router.put('/doctores/:id', adminController.editarDoctor);

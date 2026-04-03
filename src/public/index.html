@@ -752,6 +752,15 @@
 
                 <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
 
+                <div style="padding: 16px; border: 1px solid var(--border); border-radius: 12px; background: var(--background); margin-bottom: 24px;">
+                    <h4 style="margin-bottom: 10px; color: var(--primary);">Info de la cuenta</h4>
+                    <div style="font-size: 14px; color: var(--text-secondary); display: grid; gap: 6px;">
+                        <div><strong>Fecha de creación:</strong> <span id="settingsInfoCreado">-</span></div>
+                    </div>
+                </div>
+
+                <hr style="margin: 24px 0; border: none; border-top: 1px solid var(--border);">
+
                 <button id="deleteAccountBtn" class="btn btn-danger" onclick="eliminarMiCuenta()">Eliminar cuenta</button>
             </div>
 
@@ -762,6 +771,7 @@
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
                     <button class="btn btn-secondary" onclick="showAdminDoctors()">Gestionar Doctores</button>
                     <button class="btn btn-secondary" onclick="showAdminPatients()">Gestionar Pacientes</button>
+                    <button class="btn btn-secondary" onclick="showAdminHistory()">Historial de Cambios</button>
                 </div>
 
                 <div id="adminDoctorsView" class="hidden">
@@ -776,12 +786,44 @@
                     </form>
                     
                     <h4 style="margin: 20px 0 12px;">Doctores Registrados</h4>
+                    <input
+                        type="text"
+                        id="adminDoctorsSearch"
+                        placeholder="Buscar doctor por ID, nombre, username, correo o teléfono"
+                        oninput="aplicarBusquedaAdminDoctores()"
+                        style="margin-bottom: 12px;"
+                    >
                     <div id="adminDoctorsList"></div>
                 </div>
 
                 <div id="adminPatientsView">
                     <h4 style="margin-bottom: 12px;">Pacientes Registrados</h4>
+                    <input
+                        type="text"
+                        id="adminPatientsSearch"
+                        placeholder="Buscar paciente por ID, nombre, username, correo o teléfono"
+                        oninput="aplicarBusquedaAdminPacientes()"
+                        style="margin-bottom: 12px;"
+                    >
                     <div id="adminPatientsList"></div>
+                </div>
+
+                <div id="adminHistoryView" class="hidden">
+                    <h4 style="margin-bottom: 12px;">Historial de Cambios</h4>
+                    <div style="overflow-x:auto;">
+                        <table style="width:100%; border-collapse: collapse; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden;">
+                            <thead>
+                                <tr style="background: var(--background); text-align:left;">
+                                    <th style="padding:10px; border-bottom:1px solid var(--border);">Fecha</th>
+                                    <th style="padding:10px; border-bottom:1px solid var(--border);">Tipo</th>
+                                    <th style="padding:10px; border-bottom:1px solid var(--border);">Descripción</th>
+                                </tr>
+                            </thead>
+                            <tbody id="adminHistoryList">
+                                <tr><td colspan="3" style="padding:12px; color: var(--text-muted);">Sin registros</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
 
@@ -888,6 +930,19 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-icon">E</div>
+                        <div>
+                            <div class="card-title">Mi Expediente Cl&iacute;nico</div>
+                            <div class="card-subtitle">Historial de consultas m&eacute;dicas</div>
+                        </div>
+                    </div>
+                    <p style="font-size:13px;color:var(--text-muted);margin-bottom:16px;">Tu historial cl&iacute;nico es confidencial. Solo t&uacute; y los m&eacute;dicos que te han atendido pueden verlo.</p>
+                    <button class="btn btn-secondary" onclick="cargarMiExpediente()" style="margin-bottom:16px;">Ver mi expediente</button>
+                    <div id="pacienteExpedienteList"></div>
+                </div>
             </div>
 
             
@@ -904,6 +959,14 @@
                     <button class="btn btn-secondary" onclick="cargarCitasDoctor()" style="margin-bottom: 20px;">
                         Actualizar Citas
                     </button>
+
+                    <input
+                        type="text"
+                        id="doctorCitasSearch"
+                        placeholder="Buscar paciente por ID, nombre, username, correo o teléfono"
+                        oninput="aplicarBusquedaCitasDoctor()"
+                        style="margin-bottom: 12px;"
+                    >
 
                     <div id="citasDoctorList" class="appointments-list">
                         <div class="loading">
@@ -926,10 +989,51 @@
         </div>
     </div>
 
+    <div id="expedienteModal" class="modal-overlay hidden">
+        <div class="modal-box" style="max-width:700px;">
+            <div class="modal-header">
+                <h3 id="expedienteModalTitle">Expediente Cl&iacute;nico</h3>
+                <button class="modal-close" onclick="cerrarExpedienteModal()">&times;</button>
+            </div>
+            <div id="expedienteModalBody">
+                <div id="expedienteEntradas" style="margin-bottom:24px;"></div>
+                <div id="expedienteFormWrap" class="hidden">
+                    <h4 style="margin-bottom:12px;color:var(--primary);">Agregar nueva entrada</h4>
+                    <form onsubmit="agregarEntradaExpediente(event)">
+                        <div class="form-group">
+                            <label>Fecha de consulta</label>
+                            <input type="date" id="expFecha" required>
+                        </div>
+                        <div class="form-group">
+                            <label>S&iacute;ntomas</label>
+                            <textarea id="expSintomas" rows="3" placeholder="Describe los s&iacute;ntomas del paciente"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Diagn&oacute;stico</label>
+                            <textarea id="expDiagnostico" rows="3" placeholder="Diagn&oacute;stico m&eacute;dico"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Tratamiento</label>
+                            <textarea id="expTratamiento" rows="2" placeholder="Medicamentos y tratamiento indicado"></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Notas adicionales</label>
+                            <textarea id="expNotas" rows="2" placeholder="Observaciones"></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Guardar entrada</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
         const API_URL = 'http://localhost:3000/api';
         let token = localStorage.getItem('token');
         let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
+        let _adminDoctorsData = [];
+        let _adminPatientsData = [];
+        let _doctorCitasData = [];
 
         
         document.addEventListener('DOMContentLoaded', () => {
@@ -1090,9 +1194,24 @@
                 } else {
                     fotoPerfil.src = '/uploads/perfiles/default.png';
                 }
+
+                document.getElementById('settingsInfoCreado').textContent = formatearFechaCuenta(data.ajustes.creado_en);
             } catch (err) {
                 alert(err.message);
             }
+        }
+
+        function formatearFechaCuenta(fechaIso) {
+            if (!fechaIso) return '-';
+            const fecha = new Date(fechaIso);
+            if (Number.isNaN(fecha.getTime())) return '-';
+            return fecha.toLocaleString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
         }
 
         async function guardarAjustesCuenta(e) {
@@ -1440,37 +1559,8 @@
                 });
 
                 const citas = await res.json();
-                const container = document.getElementById('citasDoctorList');
-
-                if (citas.length === 0) {
-                    container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No tienes citas asignadas</p>';
-                    return;
-                }
-
-                container.innerHTML = citas.map(c => `
-                    <div class="appointment-card">
-                        <div class="appointment-header">
-                            <span class="appointment-patient">${c.paciente_nombre || 'Paciente'}</span>
-                            <span class="appointment-datetime">${c.fecha} ${c.hora}</span>
-                        </div>
-                        <div class="appointment-reason">${c.razon}</div>
-                        <div class="appointment-doctor">
-                            Estado: <strong>${c.estado || 'pendiente'}</strong>
-                        </div>
-                        <div class="appointment-actions">
-                            ${c.estado === 'pendiente' ? `
-                                <button class="btn btn-secondary btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "confirmada")'>Aceptar</button>
-                                <button class="btn btn-danger btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "cancelada")'>Cancelar</button>
-                            ` : ''}
-                            ${c.estado === 'confirmada' ? `
-                                <button class="btn btn-success btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "completada")'>Finalizar</button>
-                            ` : ''}
-                            ${c.estado === 'cancelada' || c.estado === 'completada' ? `
-                                <span style="color: var(--text-muted); font-size: 13px;">Cita ${c.estado}</span>
-                            ` : ''}
-                        </div>
-                    </div>
-                `).join('');
+                _doctorCitasData = Array.isArray(citas) ? citas : [];
+                aplicarBusquedaCitasDoctor();
             } catch (err) {
                 console.error(err);
             }
@@ -1498,13 +1588,66 @@
         async function showAdminDoctors() {
             document.getElementById('adminDoctorsView').classList.toggle('hidden');
             document.getElementById('adminPatientsView').classList.add('hidden');
+            document.getElementById('adminHistoryView').classList.add('hidden');
             cargarAdminDoctors();
         }
 
         async function showAdminPatients() {
             document.getElementById('adminPatientsView').classList.toggle('hidden');
             document.getElementById('adminDoctorsView').classList.add('hidden');
+            document.getElementById('adminHistoryView').classList.add('hidden');
             cargarAdminPatients();
+        }
+
+        async function showAdminHistory() {
+            document.getElementById('adminHistoryView').classList.toggle('hidden');
+            document.getElementById('adminDoctorsView').classList.add('hidden');
+            document.getElementById('adminPatientsView').classList.add('hidden');
+            if (!document.getElementById('adminHistoryView').classList.contains('hidden')) {
+                await cargarAdminHistory();
+            }
+        }
+
+        function _fmtDateHist(fecha) {
+            if (!fecha) return '-';
+            const d = new Date(fecha);
+            if (Number.isNaN(d.getTime())) return '-';
+            return d.toLocaleString('es-ES', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+            });
+        }
+
+        async function cargarAdminHistory() {
+            try {
+                const res = await fetch(`${API_URL}/admin/historial-cambios`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const historial = await res.json();
+                if (!res.ok) throw new Error(historial.mensaje || 'No se pudo cargar el historial.');
+
+                const tbody = document.getElementById('adminHistoryList');
+                if (!Array.isArray(historial) || historial.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="3" style="padding:12px; color: var(--text-muted);">Sin registros</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = historial.map(item => {
+                    const tipo = String(item.tipo || '').toUpperCase();
+                    const esEliminacion = tipo === 'ELIMINACION';
+                    const bg = esEliminacion ? 'rgba(239, 68, 68, 0.08)' : 'rgba(16, 185, 129, 0.08)';
+                    const color = esEliminacion ? 'var(--error)' : 'var(--success)';
+                    return `
+                        <tr style="background:${bg};">
+                            <td style="padding:10px; border-bottom:1px solid var(--border); white-space: nowrap;">${_fmtDateHist(item.creado_en)}</td>
+                            <td style="padding:10px; border-bottom:1px solid var(--border); color:${color}; font-weight:600;">${tipo || 'CAMBIO'}</td>
+                            <td style="padding:10px; border-bottom:1px solid var(--border); color:${color};">${item.descripcion || ''}</td>
+                        </tr>
+                    `;
+                }).join('');
+            } catch (err) {
+                document.getElementById('adminHistoryList').innerHTML = `<tr><td colspan="3" style="padding:12px; color: var(--error);">${err.message}</td></tr>`;
+            }
         }
 
         async function cargarAdminDoctors() {
@@ -1513,21 +1656,8 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const doctores = await res.json();
-
-                document.getElementById('adminDoctorsList').innerHTML = doctores.map(d => `
-                    <div class="admin-row">
-                        <div style="display: flex; align-items: center; gap: 12px;">
-                            <img src="${d.foto_perfil ? d.foto_perfil : '/uploads/perfiles/default.png'}" alt="${d.nombre}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
-                            <div>
-                                <strong>${d.nombre}</strong> - ${d.especialidad}
-                                <br><small>${d.email} · @${d.username}</small>
-                            </div>
-                        </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick='editarDoctor(${JSON.stringify(d.id)}, ${JSON.stringify(d.email)}, ${JSON.stringify(d.username)}, ${JSON.stringify(d.nombre)}, ${JSON.stringify(d.especialidad)}, ${JSON.stringify(d.foto_perfil || "")})'>Editar</button>
-                        </div>
-                    </div>
-                `).join('') || '<p>No hay doctores registrados</p>';
+                _adminDoctorsData = Array.isArray(doctores) ? doctores : [];
+                aplicarBusquedaAdminDoctores();
             } catch (err) {
                 console.error(err);
             }
@@ -1539,21 +1669,125 @@
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const pacientes = await res.json();
-
-                document.getElementById('adminPatientsList').innerHTML = pacientes.map(p => `
-                    <div class="admin-row">
-                        <div>
-                            <strong>${p.nombre}</strong>
-                            <br><small>${p.email} · @${p.username}${p.telefono ? ' · ' + p.telefono : ''}</small>
-                        </div>
-                        <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
-                            <button class="btn btn-outline btn-sm" onclick='editarPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
-                        </div>
-                    </div>
-                `).join('') || '<p>No hay pacientes registrados</p>';
+                _adminPatientsData = Array.isArray(pacientes) ? pacientes : [];
+                aplicarBusquedaAdminPacientes();
             } catch (err) {
                 console.error(err);
             }
+        }
+
+        function _normalizarBusqueda(valor) {
+            return String(valor || '').toLowerCase().trim();
+        }
+
+        function _coincideBusqueda(campos, termino) {
+            if (!termino) return true;
+            return campos.some(campo => _normalizarBusqueda(campo).includes(termino));
+        }
+
+        function renderAdminDoctors(doctores) {
+            document.getElementById('adminDoctorsList').innerHTML = doctores.map(d => `
+                <div class="admin-row">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <img src="${d.foto_perfil ? d.foto_perfil : '/uploads/perfiles/default.png'}" alt="${d.nombre}" style="width: 40px; height: 40px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
+                        <div>
+                            <strong>${d.nombre}</strong> - ${d.especialidad}
+                            <br><small>ID: ${d.id} · ${d.email} · @${d.username}</small>
+                        </div>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick='editarDoctor(${JSON.stringify(d.id)}, ${JSON.stringify(d.email)}, ${JSON.stringify(d.username)}, ${JSON.stringify(d.nombre)}, ${JSON.stringify(d.especialidad)}, ${JSON.stringify(d.foto_perfil || "")})'>Editar</button>
+                    </div>
+                </div>
+            `).join('') || '<p>No hay doctores registrados</p>';
+        }
+
+        function renderAdminPatients(pacientes) {
+            document.getElementById('adminPatientsList').innerHTML = pacientes.map(p => `
+                <div class="admin-row">
+                    <div>
+                        <strong>${p.nombre}</strong>
+                        <br><small>ID: ${p.id} · ${p.email} · @${p.username}${p.telefono ? ' · ' + p.telefono : ''}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick='editarPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
+                    </div>
+                </div>
+            `).join('') || '<p>No hay pacientes registrados</p>';
+        }
+
+        function renderCitasDoctor(citas) {
+            const container = document.getElementById('citasDoctorList');
+
+            if (citas.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No tienes citas asignadas</p>';
+                return;
+            }
+
+            container.innerHTML = citas.map(c => `
+                <div class="appointment-card">
+                    <div class="appointment-header">
+                        <span class="appointment-patient">${c.paciente_nombre || 'Paciente'}</span>
+                        <span class="appointment-datetime">${c.fecha} ${c.hora}</span>
+                    </div>
+                    <div class="appointment-reason">${c.razon}</div>
+                    <div class="appointment-doctor">
+                        Estado: <strong>${c.estado || 'pendiente'}</strong>
+                    </div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px;">
+                        ID: ${c.paciente_id || '-'} · @${c.paciente_username || '-'} · ${c.paciente_email || '-'}${c.telefono ? ' · ' + c.telefono : ''}
+                    </div>
+                    <div class="appointment-actions">
+                        <button class="btn btn-outline btn-sm" onclick='abrirExpedienteModal(${JSON.stringify(c.paciente_id)}, ${JSON.stringify(c.paciente_nombre || "Paciente")})'>&#128196; Expediente</button>
+                        ${c.estado === 'pendiente' ? `
+                            <button class="btn btn-secondary btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "confirmada")'>Aceptar</button>
+                            <button class="btn btn-danger btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "cancelada")'>Cancelar</button>
+                        ` : ''}
+                        ${c.estado === 'confirmada' ? `
+                            <button class="btn btn-success btn-sm" onclick='actualizarEstadoCita(${JSON.stringify(c.id)}, "completada")'>Finalizar</button>
+                        ` : ''}
+                        ${c.estado === 'cancelada' || c.estado === 'completada' ? `
+                            <span style="color: var(--text-muted); font-size: 13px;">Cita ${c.estado}</span>
+                        ` : ''}
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function aplicarBusquedaAdminDoctores() {
+            const termino = _normalizarBusqueda(document.getElementById('adminDoctorsSearch')?.value);
+            const filtrados = _adminDoctorsData.filter(d => _coincideBusqueda([
+                d.id,
+                d.nombre,
+                d.username,
+                d.email,
+                d.telefono
+            ], termino));
+            renderAdminDoctors(filtrados);
+        }
+
+        function aplicarBusquedaAdminPacientes() {
+            const termino = _normalizarBusqueda(document.getElementById('adminPatientsSearch')?.value);
+            const filtrados = _adminPatientsData.filter(p => _coincideBusqueda([
+                p.id,
+                p.nombre,
+                p.username,
+                p.email,
+                p.telefono
+            ], termino));
+            renderAdminPatients(filtrados);
+        }
+
+        function aplicarBusquedaCitasDoctor() {
+            const termino = _normalizarBusqueda(document.getElementById('doctorCitasSearch')?.value);
+            const filtradas = _doctorCitasData.filter(c => _coincideBusqueda([
+                c.paciente_id,
+                c.paciente_nombre,
+                c.paciente_username,
+                c.paciente_email,
+                c.telefono
+            ], termino));
+            renderCitasDoctor(filtradas);
         }
 
         async function adminCreateDoctor(e) {
@@ -1862,6 +2096,210 @@
                 cargarAdminPatients();
             } catch (err) {
                 alert(err.message);
+            }
+        }
+
+        // ─── Expediente Clínico ───────────────────────────────────────────────
+
+        let _expPacienteId = null;
+
+        function cerrarExpedienteModal() {
+            document.getElementById('expedienteModal').classList.add('hidden');
+            document.getElementById('expedienteEntradas').innerHTML = '';
+            const formWrap = document.getElementById('expedienteFormWrap');
+            if (formWrap) formWrap.classList.add('hidden');
+            _expPacienteId = null;
+        }
+
+        async function abrirExpedienteModal(pacienteId, pacienteNombre) {
+            _expPacienteId = pacienteId;
+            document.getElementById('expedienteModalTitle').textContent =
+                `Expediente Clínico - ${pacienteNombre || pacienteId}`;
+            document.getElementById('expedienteModal').classList.remove('hidden');
+
+            // Mostrar formulario si es doctor
+            const formWrap = document.getElementById('expedienteFormWrap');
+            if (usuario && usuario.rol === 'doctor') {
+                formWrap.classList.remove('hidden');
+                // Pre-fill date with today
+                const hoy = new Date().toISOString().slice(0, 10);
+                document.getElementById('expFecha').value = hoy;
+            } else {
+                formWrap.classList.add('hidden');
+            }
+
+            await cargarExpediente(pacienteId);
+        }
+
+        async function cargarExpediente(pacienteId) {
+            const container = document.getElementById('expedienteEntradas');
+            container.innerHTML = '<p style="color:var(--text-muted);">Cargando...</p>';
+
+            try {
+                const res = await fetch(`${API_URL}/expediente/${pacienteId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo cargar el expediente.');
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);">Sin entradas en el expediente.</p>';
+                    return;
+                }
+
+                const esDoctorOPaciente = usuario && (usuario.rol === 'doctor' || usuario.rol === 'paciente');
+
+                container.innerHTML = data.map(e => `
+                    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface);">
+                        <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px;">
+                            <div>
+                                <strong style="color:var(--primary);">${e.fecha_consulta || '-'}</strong>
+                                <span style="font-size:12px;color:var(--text-muted);margin-left:8px;">Dr. ${_esc(e.doctor_nombre || e.doctor_id)}</span>
+                            </div>
+                            ${ usuario && usuario.rol === 'doctor' && e.doctor_id === usuario.id ? `
+                            <div style="display:flex;gap:6px;">
+                                <button class="btn btn-outline btn-sm" onclick='editarEntradaExpediente(${JSON.stringify(e)})'>Editar</button>
+                                <button class="btn btn-danger btn-sm" onclick='eliminarEntradaExpediente(${JSON.stringify(e.paciente_id)}, ${JSON.stringify(e.id)})'>Eliminar</button>
+                            </div>` : '' }
+                        </div>
+                        ${ esDoctorOPaciente ? `
+                        <div style="margin-top:10px;display:grid;gap:6px;font-size:14px;">
+                            <div><strong>Síntomas:</strong> ${_esc(e.sintomas) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Diagnóstico:</strong> ${_esc(e.diagnostico) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Tratamiento:</strong> ${_esc(e.tratamiento) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Notas:</strong> ${_esc(e.notas) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                        </div>` : `<p style="font-size:13px;color:var(--text-muted);margin-top:8px;">Contenido confidencial.</p>` }
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<p style="color:var(--error);">${_esc(err.message)}</p>`;
+            }
+        }
+
+        async function agregarEntradaExpediente(e) {
+            e.preventDefault();
+            const fecha_consulta = document.getElementById('expFecha').value;
+            const sintomas = document.getElementById('expSintomas').value;
+            const diagnostico = document.getElementById('expDiagnostico').value;
+            const tratamiento = document.getElementById('expTratamiento').value;
+            const notas = document.getElementById('expNotas').value;
+
+            try {
+                const res = await fetch(`${API_URL}/expediente/${_expPacienteId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                    body: JSON.stringify({ fecha_consulta, sintomas, diagnostico, tratamiento, notas })
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo guardar la entrada.');
+
+                // Limpiar formulario
+                document.getElementById('expSintomas').value = '';
+                document.getElementById('expDiagnostico').value = '';
+                document.getElementById('expTratamiento').value = '';
+                document.getElementById('expNotas').value = '';
+
+                await cargarExpediente(_expPacienteId);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        async function eliminarEntradaExpediente(pacienteId, entradaId) {
+            if (!confirm('¿Eliminar esta entrada del expediente? No se puede deshacer.')) return;
+            try {
+                const res = await fetch(`${API_URL}/expediente/${pacienteId}/${entradaId}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo eliminar la entrada.');
+                await cargarExpediente(pacienteId);
+            } catch (err) {
+                alert('Error: ' + err.message);
+            }
+        }
+
+        function editarEntradaExpediente(entrada) {
+            const formWrap = document.getElementById('expedienteFormWrap');
+            formWrap.classList.remove('hidden');
+            document.getElementById('expFecha').value = entrada.fecha_consulta || '';
+            document.getElementById('expSintomas').value = entrada.sintomas || '';
+            document.getElementById('expDiagnostico').value = entrada.diagnostico || '';
+            document.getElementById('expTratamiento').value = entrada.tratamiento || '';
+            document.getElementById('expNotas').value = entrada.notas || '';
+
+            // Cambiar el formulario temporalmente a modo edición
+            const form = formWrap.querySelector('form');
+            const oldSubmit = form.onsubmit;
+            const btnGuardar = form.querySelector('button[type=submit]');
+            btnGuardar.textContent = 'Actualizar entrada';
+
+            form.onsubmit = async (e) => {
+                e.preventDefault();
+                try {
+                    const res = await fetch(`${API_URL}/expediente/${entrada.paciente_id}/${entrada.id}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            fecha_consulta: document.getElementById('expFecha').value,
+                            sintomas: document.getElementById('expSintomas').value,
+                            diagnostico: document.getElementById('expDiagnostico').value,
+                            tratamiento: document.getElementById('expTratamiento').value,
+                            notas: document.getElementById('expNotas').value,
+                        })
+                    });
+                    const data = await res.json();
+                    if (!res.ok) throw new Error(data.mensaje || 'No se pudo actualizar.');
+
+                    // Restaurar modo agregar
+                    form.onsubmit = oldSubmit;
+                    btnGuardar.textContent = 'Guardar entrada';
+                    document.getElementById('expSintomas').value = '';
+                    document.getElementById('expDiagnostico').value = '';
+                    document.getElementById('expTratamiento').value = '';
+                    document.getElementById('expNotas').value = '';
+
+                    await cargarExpediente(entrada.paciente_id);
+                } catch (err) {
+                    alert('Error: ' + err.message);
+                }
+            };
+        }
+
+        async function cargarMiExpediente() {
+            if (!usuario) return;
+            const container = document.getElementById('pacienteExpedienteList');
+            container.innerHTML = '<p style="color:var(--text-muted);">Cargando...</p>';
+
+            try {
+                const res = await fetch(`${API_URL}/expediente/${usuario.id}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo cargar el expediente.');
+
+                if (!Array.isArray(data) || data.length === 0) {
+                    container.innerHTML = '<p style="color:var(--text-muted);">No tienes entradas en tu expediente aún.</p>';
+                    return;
+                }
+
+                container.innerHTML = data.map(e => `
+                    <div style="border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--surface);">
+                        <div style="display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;">
+                            <strong style="color:var(--primary);">${e.fecha_consulta || '-'}</strong>
+                            <span style="font-size:12px;color:var(--text-muted);">Dr. ${_esc(e.doctor_nombre || e.doctor_id)}</span>
+                        </div>
+                        <div style="margin-top:10px;display:grid;gap:6px;font-size:14px;">
+                            <div><strong>Síntomas:</strong> ${_esc(e.sintomas) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Diagnóstico:</strong> ${_esc(e.diagnostico) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Tratamiento:</strong> ${_esc(e.tratamiento) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                            <div><strong>Notas:</strong> ${_esc(e.notas) || '<span style="color:var(--text-muted)">—</span>'}</div>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (err) {
+                container.innerHTML = `<p style="color:var(--error);">${_esc(err.message)}</p>`;
             }
         }
     </script>

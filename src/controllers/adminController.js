@@ -3,8 +3,25 @@ const bcrypt = require('bcrypt');
 const { generateUniqueUsername, normalizeUsername, usernameExists } = require('../utils/username');
 const { generateUniquePublicUserId } = require('../utils/userId');
 const { emailExists } = require('../utils/accountDirectory');
+const { registrarCambio } = require('../utils/historialCambios');
 const path = require('path');
 const fs = require('fs');
+
+exports.obtenerHistorialCambios = async (req, res) => {
+    try {
+        const [historial] = await db.query(`
+            SELECT id, tipo, descripcion, creado_en
+            FROM historial_cambios
+            ORDER BY creado_en DESC, id DESC
+            LIMIT 500
+        `);
+
+        res.json(historial);
+    } catch (error) {
+        console.error('Error al obtener historial de cambios:', error);
+        res.status(500).json({ mensaje: 'Error interno al obtener el historial de cambios.' });
+    }
+};
 
 exports.obtenerUsuarios = async (req, res) => {
     try {
@@ -78,6 +95,11 @@ exports.crearDoctor = async (req, res) => {
              VALUES (?, ?, ?, ?, ?, ?)`,
             [publicUserId, emailLimpio, usernameCandidate, passwordHash, nombre, especialidad]
         );
+
+        await registrarCambio({
+            tipo: 'CREACION',
+            descripcion: `El administrador ${req.usuario.email} ha creado la cuenta ${publicUserId} (@${usernameCandidate}).`,
+        });
 
         res.status(201).json({
             mensaje: 'Doctor creado exitosamente.',
@@ -190,6 +212,11 @@ exports.eliminarDoctor = async (req, res) => {
         }
 
         await db.query('DELETE FROM doctores WHERE codigo_id = ?', [id]);
+
+        await registrarCambio({
+            tipo: 'ELIMINACION',
+            descripcion: `El administrador ${req.usuario.email} ha borrado la cuenta ${id}.`,
+        });
 
         res.json({ mensaje: 'Doctor eliminado exitosamente.' });
     } catch (error) {
@@ -308,6 +335,11 @@ exports.eliminarPaciente = async (req, res) => {
         }
 
         await db.query('DELETE FROM pacientes WHERE codigo_id = ?', [id]);
+
+        await registrarCambio({
+            tipo: 'ELIMINACION',
+            descripcion: `El administrador ${req.usuario.email} ha borrado la cuenta ${id}.`,
+        });
 
         res.json({ mensaje: 'Paciente eliminado exitosamente.' });
     } catch (error) {

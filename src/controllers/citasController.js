@@ -49,7 +49,8 @@ exports.obtenerCitas = async (req, res) => {
         
         query = `
             SELECT c.codigo_id AS id, c.razon, c.fecha, c.hora, c.estado,
-                   p.nombre AS paciente_nombre, p.telefono
+                   p.codigo_id AS paciente_id, p.nombre AS paciente_nombre,
+                   p.username AS paciente_username, p.email AS paciente_email, p.telefono
             FROM citas c
             JOIN pacientes p ON c.paciente_id = p.codigo_id
             WHERE c.doctor_id = ?

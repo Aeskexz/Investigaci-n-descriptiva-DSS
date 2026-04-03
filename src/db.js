@@ -83,6 +83,38 @@ async function ensureAdminsTable() {
     `);
 }
 
+async function ensureHistorialCambiosTable() {
+    await promisePool.query(`
+        CREATE TABLE IF NOT EXISTS historial_cambios (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            tipo VARCHAR(20) NOT NULL,
+            descripcion TEXT NOT NULL,
+            creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `);
+}
+
+async function ensureExpedienteClinicoTable() {
+    await promisePool.query(`
+        CREATE TABLE IF NOT EXISTS expediente_clinico (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            paciente_id VARCHAR(10) NOT NULL,
+            doctor_id VARCHAR(10) NOT NULL,
+            fecha_consulta DATE NOT NULL,
+            sintomas TEXT NULL,
+            diagnostico TEXT NULL,
+            tratamiento TEXT NULL,
+            notas TEXT NULL,
+            iv VARCHAR(32) NOT NULL,
+            creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            INDEX idx_exp_paciente (paciente_id),
+            INDEX idx_exp_doctor (doctor_id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `);
+}
+
 async function ensureAccountColumns(tableName) {
     await addColumnIfMissing(tableName, 'codigo_id', 'VARCHAR(10) NULL');
     await addColumnIfMissing(tableName, 'email', 'VARCHAR(150) NULL');
@@ -434,6 +466,8 @@ async function removeUsuarioReferencesAndDropTable() {
 
 async function ensureSplitAccountSchema() {
     await ensureAdminsTable();
+    await ensureHistorialCambiosTable();
+    await ensureExpedienteClinicoTable();
     await ensureAccountColumns('admins');
     await ensureAccountColumns('doctores');
     await ensureAccountColumns('pacientes');

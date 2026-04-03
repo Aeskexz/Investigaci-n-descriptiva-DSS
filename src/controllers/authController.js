@@ -9,6 +9,7 @@ const {
     getAccountByRoleAndId,
     getTableByRole,
 } = require('../utils/accountDirectory');
+const { registrarCambio } = require('../utils/historialCambios');
 const path = require('path');
 const fs = require('fs');
 
@@ -72,6 +73,11 @@ exports.registrar = async (req, res) => {
         }
 
         await db.query('COMMIT');
+
+        await registrarCambio({
+            tipo: 'CREACION',
+            descripcion: `Usuario ${publicUserId} (@${usernameCandidate}) ha creado su cuenta.`,
+        });
 
         res.status(201).json({
             mensaje: 'Usuario registrado exitosamente.',
@@ -212,6 +218,7 @@ exports.obtenerAjustesCuenta = async (req, res) => {
                 nombre,
                 telefono,
                 foto_perfil,
+                creado_en: usuario.creado_en,
             },
         });
     } catch (error) {
@@ -363,10 +370,23 @@ exports.cambiarPasswordCuenta = async (req, res) => {
 exports.eliminarMiCuenta = async (req, res) => {
     try {
         const tabla = getTableByRole(req.usuario.rol);
+        const [cuentas] = await db.query(
+            `SELECT codigo_id, username FROM ${tabla} WHERE codigo_id = ? LIMIT 1`,
+            [req.usuario.id]
+        );
+
+        const cuenta = cuentas[0] || null;
         const [resultado] = await db.query(`DELETE FROM ${tabla} WHERE codigo_id = ?`, [req.usuario.id]);
 
         if (resultado.affectedRows === 0) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
+        }
+
+        if (cuenta) {
+            await registrarCambio({
+                tipo: 'ELIMINACION',
+                descripcion: `Usuario ${cuenta.codigo_id} (@${cuenta.username || '-'}) ha borrado su cuenta.`,
+            });
         }
 
         res.json({ mensaje: 'Cuenta eliminada exitosamente.' });
