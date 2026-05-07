@@ -15,6 +15,54 @@ const fs = require('fs');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
+async function loginPorRoles(req, res, rolesPermitidos, mensajeCredencialesInvalidas = 'Email o contraseña incorrectos.') {
+    const { identifier, email, username, password } = req.body;
+    const loginIdentifier = String(identifier || email || username || '').trim();
+
+    try {
+        if (!loginIdentifier || !password) {
+            return res.status(400).json({ mensaje: 'Correo o nombre de usuario y contraseña son requeridos.' });
+        }
+
+        const usuario = await findAccountByIdentifier(
+            db,
+            loginIdentifier,
+            normalizeUsername(loginIdentifier),
+            { roles: rolesPermitidos }
+        );
+
+        if (!usuario) {
+            return res.status(401).json({ mensaje: mensajeCredencialesInvalidas });
+        }
+
+        const passwordValida = await bcrypt.compare(password, usuario.password || '');
+        if (!passwordValida) {
+            return res.status(401).json({ mensaje: mensajeCredencialesInvalidas });
+        }
+
+        const token = jwt.sign(
+            { id: usuario.codigo_id, email: usuario.email, rol: usuario.rol },
+            JWT_SECRET,
+            { expiresIn: '24h' }
+        );
+
+        return res.json({
+            mensaje: 'Login exitoso.',
+            token,
+            usuario: {
+                id: usuario.codigo_id,
+                email: usuario.email,
+                username: usuario.username,
+                rol: usuario.rol,
+                requiereCambioPassword: Boolean(usuario.requiere_cambio_password),
+            },
+        });
+    } catch (error) {
+        console.error('Error al hacer login:', error);
+        return res.status(500).json({ mensaje: 'Error interno al hacer login.' });
+    }
+}
+
 exports.registrar = async (req, res) => {
     const { email, username, password, rol, nombre, especialidad, telefono } = req.body;
 
@@ -96,45 +144,16 @@ exports.registrar = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-    const { identifier, email, username, password } = req.body;
-    const loginIdentifier = String(identifier || email || username || '').trim();
+    return loginPorRoles(req, res, ['doctor', 'paciente']);
+};
 
-    try {
-        if (!loginIdentifier || !password) {
-            return res.status(400).json({ mensaje: 'Correo o nombre de usuario y contraseña son requeridos.' });
-        }
-
-        const usuario = await findAccountByIdentifier(db, loginIdentifier, normalizeUsername(loginIdentifier));
-
-        if (!usuario) {
-            return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
-        }
-
-        const passwordValida = await bcrypt.compare(password, usuario.password || '');
-        if (!passwordValida) {
-            return res.status(401).json({ mensaje: 'Email o contraseña incorrectos.' });
-        }
-
-        const token = jwt.sign(
-            { id: usuario.codigo_id, email: usuario.email, rol: usuario.rol },
-            JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        res.json({
-            mensaje: 'Login exitoso.',
-            token,
-            usuario: {
-                id: usuario.codigo_id,
-                email: usuario.email,
-                username: usuario.username,
-                rol: usuario.rol,
-            },
-        });
-    } catch (error) {
-        console.error('Error al hacer login:', error);
-        res.status(500).json({ mensaje: 'Error interno al hacer login.' });
-    }
+exports.loginAdmin = async (req, res) => {
+    return loginPorRoles(
+        req,
+        res,
+        ['admin'],
+        'Credenciales de administrador incorrectas.'
+    );
 };
 
 exports.obtenerPerfil = async (req, res) => {
@@ -190,14 +209,16 @@ exports.obtenerAjustesCuenta = async (req, res) => {
         let nombre = '';
         let telefono = '';
         let foto_perfil = null;
+        let disponible_consulta = null;
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT nombre, foto_perfil FROM doctores WHERE codigo_id = ?',
+                'SELECT nombre, foto_perfil, disponible_consulta FROM doctores WHERE codigo_id = ?',
                 [usuario.codigo_id]
             );
             nombre = doctores[0]?.nombre || '';
             foto_perfil = doctores[0]?.foto_perfil || null;
+            disponible_consulta = Boolean(doctores[0]?.disponible_consulta);
         }
 
         if (usuario.rol === 'paciente') {
@@ -212,18 +233,54 @@ exports.obtenerAjustesCuenta = async (req, res) => {
 
         res.json({
             ajustes: {
+                id: usuario.codigo_id,
                 email: usuario.email,
                 username: usuario.username,
                 rol: usuario.rol,
                 nombre,
                 telefono,
                 foto_perfil,
+                disponible_consulta,
+                requiere_cambio_password: Boolean(usuario.requiere_cambio_password),
                 creado_en: usuario.creado_en,
             },
         });
     } catch (error) {
         console.error('Error al obtener ajustes de cuenta:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener los ajustes de cuenta.' });
+    }
+};
+
+exports.actualizarDisponibilidadConsultaDoctor = async (req, res) => {
+    const { disponible_consulta } = req.body || {};
+
+    try {
+        if (req.usuario.rol !== 'doctor') {
+            return res.status(403).json({ mensaje: 'Solo los doctores pueden actualizar su disponibilidad.' });
+        }
+
+        if (typeof disponible_consulta !== 'boolean') {
+            return res.status(400).json({ mensaje: 'El campo disponible_consulta debe ser booleano.' });
+        }
+
+        const [resultado] = await db.query(
+            'UPDATE doctores SET disponible_consulta = ? WHERE codigo_id = ?',
+            [disponible_consulta ? 1 : 0, req.usuario.id]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: 'Doctor no encontrado.' });
+        }
+
+        return res.json({
+            mensaje: disponible_consulta
+                ? 'Ahora apareces como disponible para consulta.'
+                : 'Ahora apareces como no disponible para consulta.',
+            disponible_consulta,
+        });
+    } catch (error) {
+        console.error('Error al actualizar disponibilidad de consulta:', error);
+        return res.status(500).json({ mensaje: 'Error interno al actualizar disponibilidad.' });
     }
 };
 
@@ -355,10 +412,17 @@ exports.cambiarPasswordCuenta = async (req, res) => {
             return res.status(401).json({ mensaje: 'La contraseña actual es incorrecta.' });
         }
 
+        if (String(passwordActual) === String(nuevaPassword)) {
+            return res.status(400).json({ mensaje: 'Debes elegir una contraseña nueva diferente a la temporal o actual.' });
+        }
+
         const passwordHash = await bcrypt.hash(String(nuevaPassword), 10);
         const tabla = getTableByRole(usuario.rol);
 
-        await db.query(`UPDATE ${tabla} SET password = ? WHERE codigo_id = ?`, [passwordHash, usuario.codigo_id]);
+        await db.query(
+            `UPDATE ${tabla} SET password = ?, requiere_cambio_password = 0 WHERE codigo_id = ?`,
+            [passwordHash, usuario.codigo_id]
+        );
 
         res.json({ mensaje: 'Contraseña actualizada exitosamente.' });
     } catch (error) {

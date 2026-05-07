@@ -63,6 +63,101 @@ exports.obtenerCitas = async (req, res) => {
     res.json(citas);
 };
 
+exports.obtenerDisponibilidadDoctor = async (req, res) => {
+    const { doctor_id, fecha_inicio } = req.query;
+
+    try {
+        if (req.usuario.rol !== 'paciente') {
+            return res.status(403).json({ mensaje: 'Solo los pacientes pueden consultar disponibilidad.' });
+        }
+
+        if (!doctor_id) {
+            return res.status(400).json({ mensaje: 'El doctor es requerido.' });
+        }
+
+        const [doctores] = await db.query('SELECT codigo_id FROM doctores WHERE codigo_id = ? LIMIT 1', [doctor_id]);
+        if (doctores.length === 0) {
+            return res.status(404).json({ mensaje: 'El doctor especificado no existe.' });
+        }
+
+        const baseDate = fecha_inicio
+            ? new Date(`${String(fecha_inicio)}T00:00:00`)
+            : new Date();
+
+        if (Number.isNaN(baseDate.getTime())) {
+            return res.status(400).json({ mensaje: 'Fecha de inicio no válida.' });
+        }
+
+        const mondayOffset = (baseDate.getDay() + 6) % 7;
+        baseDate.setDate(baseDate.getDate() - mondayOffset);
+
+        const inicioSemana = new Date(baseDate);
+        const finSemana = new Date(baseDate);
+        finSemana.setDate(finSemana.getDate() + 6);
+
+        const toIsoDate = (dateObj) => dateObj.toISOString().slice(0, 10);
+        const inicioIso = toIsoDate(inicioSemana);
+        const finIso = toIsoDate(finSemana);
+
+        const [ocupadas] = await db.query(
+            `SELECT fecha, hora
+             FROM citas
+             WHERE doctor_id = ?
+               AND fecha BETWEEN ? AND ?
+               AND estado <> 'cancelada'`,
+            [doctor_id, inicioIso, finIso]
+        );
+
+        const formatearFechaSql = (value) => {
+            if (!value) return '';
+
+            if (value instanceof Date) {
+                const y = value.getFullYear();
+                const m = String(value.getMonth() + 1).padStart(2, '0');
+                const d = String(value.getDate()).padStart(2, '0');
+                return `${y}-${m}-${d}`;
+            }
+
+            return String(value).slice(0, 10);
+        };
+
+        const ocupadasSet = new Set(
+            ocupadas.map((c) => `${formatearFechaSql(c.fecha)}|${String(c.hora).slice(0, 5)}`)
+        );
+
+        const slotsPorDia = (diaSemana) => {
+            if (diaSemana === 0) return [];
+            if (diaSemana === 6) return ['08:00', '09:00', '10:00', '11:00'];
+            return ['08:00', '09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00'];
+        };
+
+        const dias = [];
+        for (let i = 0; i < 7; i += 1) {
+            const current = new Date(inicioSemana);
+            current.setDate(inicioSemana.getDate() + i);
+
+            const fecha = toIsoDate(current);
+            const diaSemana = current.getDay();
+            const slots = slotsPorDia(diaSemana).map((hora) => ({
+                hora,
+                disponible: !ocupadasSet.has(`${fecha}|${hora}`),
+            }));
+
+            dias.push({ fecha, dia_semana: diaSemana, slots });
+        }
+
+        return res.json({
+            doctor_id,
+            fecha_inicio: inicioIso,
+            fecha_fin: finIso,
+            dias,
+        });
+    } catch (error) {
+        console.error('Error al obtener disponibilidad:', error);
+        return res.status(500).json({ mensaje: 'Error interno al consultar la disponibilidad.' });
+    }
+};
+
 
 const esNombreValido = (nombre) => {
     const carPermitidos = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;

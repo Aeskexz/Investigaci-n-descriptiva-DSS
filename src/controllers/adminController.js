@@ -190,7 +190,10 @@ exports.restaurarPasswordDoctor = async (req, res) => {
 
         const passwordHash = await bcrypt.hash(passwordFinal, 10);
 
-        await db.query('UPDATE doctores SET password = ? WHERE codigo_id = ?', [passwordHash, id]);
+        await db.query(
+            'UPDATE doctores SET password = ?, requiere_cambio_password = 1 WHERE codigo_id = ?',
+            [passwordHash, id]
+        );
 
         res.json({
             mensaje: 'Contraseña restaurada exitosamente.',
@@ -313,7 +316,10 @@ exports.restaurarPasswordPaciente = async (req, res) => {
 
         const passwordHash = await bcrypt.hash(passwordFinal, 10);
 
-        await db.query('UPDATE pacientes SET password = ? WHERE codigo_id = ?', [passwordHash, id]);
+        await db.query(
+            'UPDATE pacientes SET password = ?, requiere_cambio_password = 1 WHERE codigo_id = ?',
+            [passwordHash, id]
+        );
 
         res.json({
             mensaje: 'Contraseña restaurada exitosamente.',

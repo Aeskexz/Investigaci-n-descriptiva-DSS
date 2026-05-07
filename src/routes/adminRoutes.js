@@ -1,12 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const adminController = require('../controllers/adminController');
-const { verificarToken, esAdmin } = require('../middleware/auth');
+const authController = require('../controllers/authController');
+const { verificarToken, esAdmin, requierePasswordActualizada } = require('../middleware/auth');
 const upload = require('../middleware/upload');
+
+
+router.post('/login', authController.loginAdmin);
 
 
 router.use(verificarToken);
 router.use(esAdmin);
+router.use(requierePasswordActualizada);
 
 
 router.get('/usuarios', adminController.obtenerUsuarios);

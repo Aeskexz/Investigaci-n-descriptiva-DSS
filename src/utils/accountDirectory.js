@@ -42,15 +42,22 @@ async function usernameExists(db, username, excludeAccount = null) {
     return false;
 }
 
-async function findAccountByIdentifier(db, identifier, normalizedUsername = null) {
+async function findAccountByIdentifier(db, identifier, normalizedUsername = null, options = {}) {
     const isEmail = String(identifier).includes('@');
     const value = isEmail ? String(identifier).trim() : String(normalizedUsername || identifier).trim();
     const field = isEmail ? 'email' : 'username';
+    const roles = Array.isArray(options.roles) && options.roles.length > 0
+        ? options.roles
+        : ROLE_SCAN_ORDER;
 
-    for (const role of ROLE_SCAN_ORDER) {
+    for (const role of roles) {
         const table = getTableByRole(role);
+        if (!table) {
+            continue;
+        }
+
         const [rows] = await db.query(
-            `SELECT codigo_id, email, username, password, creado_en FROM ${table} WHERE ${field} = ? LIMIT 1`,
+            `SELECT codigo_id, email, username, password, requiere_cambio_password, creado_en FROM ${table} WHERE ${field} = ? LIMIT 1`,
             [value]
         );
 
@@ -67,8 +74,8 @@ async function getAccountByRoleAndId(db, role, codigoId, includePassword = false
     if (!table) return null;
 
     const fields = includePassword
-        ? 'codigo_id, email, username, password, creado_en'
-        : 'codigo_id, email, username, creado_en';
+        ? 'codigo_id, email, username, password, requiere_cambio_password, creado_en'
+        : 'codigo_id, email, username, requiere_cambio_password, creado_en';
 
     const [rows] = await db.query(
         `SELECT ${fields} FROM ${table} WHERE codigo_id = ? LIMIT 1`,

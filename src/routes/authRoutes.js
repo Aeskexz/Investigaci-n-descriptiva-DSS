@@ -18,6 +18,7 @@ router.delete('/cuenta', verificarToken, authController.eliminarMiCuenta);
 
 
 router.put('/perfil/paciente', verificarToken, esPaciente, authController.actualizarPerfilPaciente);
+router.put('/disponibilidad-consulta', verificarToken, esDoctor, authController.actualizarDisponibilidadConsultaDoctor);
 router.put('/perfil/foto', verificarToken, upload.single('foto'), authController.cambiarFotoPerfil);
 
 module.exports = router;

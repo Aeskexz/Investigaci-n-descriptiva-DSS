@@ -23,6 +23,10 @@ app.get('/', (req, res) => {
   res.sendFile(path.join(publicPath, 'index.html'));
 });
 
+app.get('/admin', (req, res) => {
+  res.sendFile(path.join(publicPath, 'index.html'));
+});
+
 
 app.use('/api/auth', authRoutes);
 app.use('/api/admin', adminRoutes);

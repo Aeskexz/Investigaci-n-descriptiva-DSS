@@ -31,6 +31,7 @@ const verificarToken = async (req, res, next) => {
             email: usuario.email,
             username: usuario.username,
             rol: decoded.rol,
+            requiereCambioPassword: Boolean(usuario.requiere_cambio_password),
         };
         next();
 
@@ -71,9 +72,20 @@ const esPaciente = (req, res, next) => {
     next();
 };
 
+const requierePasswordActualizada = (req, res, next) => {
+    if (req.usuario.requiereCambioPassword) {
+        return res.status(403).json({
+            mensaje: 'Debes cambiar tu contraseña temporal antes de continuar.',
+            requiereCambioPassword: true,
+        });
+    }
+    next();
+};
+
 module.exports = {
     verificarToken,
     esAdmin,
     esDoctor,
-    esPaciente
+    esPaciente,
+    requierePasswordActualizada,
 };

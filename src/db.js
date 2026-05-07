@@ -77,6 +77,7 @@ async function ensureAdminsTable() {
             email VARCHAR(150) NULL,
             username VARCHAR(40) NULL,
             password VARCHAR(255) NULL,
+            requiere_cambio_password TINYINT(1) NOT NULL DEFAULT 0,
             creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
             PRIMARY KEY (id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
@@ -120,8 +121,14 @@ async function ensureAccountColumns(tableName) {
     await addColumnIfMissing(tableName, 'email', 'VARCHAR(150) NULL');
     await addColumnIfMissing(tableName, 'username', 'VARCHAR(40) NULL');
     await addColumnIfMissing(tableName, 'password', 'VARCHAR(255) NULL');
+    await addColumnIfMissing(tableName, 'requiere_cambio_password', 'TINYINT(1) NOT NULL DEFAULT 0');
     await addColumnIfMissing(tableName, 'creado_en', 'TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP');
     await addColumnIfMissing(tableName, 'foto_perfil', 'VARCHAR(255) NULL');
+
+    if (tableName === 'doctores') {
+        await addColumnIfMissing(tableName, 'disponible_consulta', 'TINYINT(1) NOT NULL DEFAULT 1');
+        await promisePool.query('UPDATE doctores SET disponible_consulta = 1 WHERE disponible_consulta IS NULL');
+    }
 }
 
 async function migrateFromUsuariosIfPresent() {
