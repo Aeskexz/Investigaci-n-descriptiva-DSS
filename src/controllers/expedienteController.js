@@ -44,7 +44,7 @@ function descifrarEntrada(row) {
 
 /**
  * GET /api/expediente/:pacienteId
- * - Doctor: puede leer si tuvo cita con el paciente.
+ * - Doctor: puede leer el expediente de cualquier paciente registrado.
  * - Paciente: solo su propio expediente.
  * - Admin: metadata sin campos sensibles.
  */
@@ -56,13 +56,6 @@ exports.obtenerExpediente = async (req, res) => {
         // Autorización
         if (rol === 'paciente' && callerId !== pacienteId) {
             return res.status(403).json({ mensaje: 'Solo puedes ver tu propio expediente.' });
-        }
-
-        if (rol === 'doctor') {
-            const tieneCita = await doctorTieneCitaConPaciente(callerId, pacienteId);
-            if (!tieneCita) {
-                return res.status(403).json({ mensaje: 'Solo puedes ver el expediente de pacientes que hayas atendido.' });
-            }
         }
 
         const [rows] = await db.query(
@@ -95,6 +88,31 @@ exports.obtenerExpediente = async (req, res) => {
     } catch (error) {
         console.error('Error al obtener expediente:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener el expediente.' });
+    }
+};
+
+/**
+ * GET /api/expediente/pacientes/lista
+ * Solo doctores: lista todos los pacientes registrados para consultar expediente.
+ */
+exports.listarPacientesParaExpediente = async (req, res) => {
+    const { rol } = req.usuario;
+
+    if (rol !== 'doctor') {
+        return res.status(403).json({ mensaje: 'Solo los doctores pueden consultar este listado.' });
+    }
+
+    try {
+        const [pacientes] = await db.query(`
+            SELECT codigo_id AS id, nombre, username, email, telefono
+            FROM pacientes
+            ORDER BY nombre ASC
+        `);
+
+        res.json(pacientes);
+    } catch (error) {
+        console.error('Error al listar pacientes para expediente:', error);
+        res.status(500).json({ mensaje: 'Error interno al obtener pacientes.' });
     }
 };
 

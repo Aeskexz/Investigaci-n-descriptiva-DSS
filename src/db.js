@@ -116,6 +116,20 @@ async function ensureExpedienteClinicoTable() {
     `);
 }
 
+async function ensureDiasAsuetoTable() {
+    await promisePool.query(`
+        CREATE TABLE IF NOT EXISTS dias_asueto (
+            id INT(11) NOT NULL AUTO_INCREMENT,
+            fecha DATE NOT NULL,
+            tipo VARCHAR(20) NOT NULL DEFAULT 'asueto',
+            motivo VARCHAR(255) NULL,
+            creado_en TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY (id),
+            UNIQUE KEY uk_dias_asueto_fecha (fecha)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci
+    `);
+}
+
 async function ensureAccountColumns(tableName) {
     await addColumnIfMissing(tableName, 'codigo_id', 'VARCHAR(10) NULL');
     await addColumnIfMissing(tableName, 'email', 'VARCHAR(150) NULL');
@@ -475,6 +489,7 @@ async function ensureSplitAccountSchema() {
     await ensureAdminsTable();
     await ensureHistorialCambiosTable();
     await ensureExpedienteClinicoTable();
+    await ensureDiasAsuetoTable();
     await ensureAccountColumns('admins');
     await ensureAccountColumns('doctores');
     await ensureAccountColumns('pacientes');

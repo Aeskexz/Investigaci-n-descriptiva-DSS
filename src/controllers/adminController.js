@@ -23,6 +23,100 @@ exports.obtenerHistorialCambios = async (req, res) => {
     }
 };
 
+exports.obtenerResumenDashboard = async (req, res) => {
+    try {
+        const [resumenRows] = await db.query(`
+            SELECT
+                (SELECT COUNT(*) FROM pacientes) AS total_pacientes,
+                (SELECT COUNT(*) FROM doctores) AS total_doctores,
+                (SELECT COUNT(*) FROM citas WHERE fecha = CURDATE() AND estado <> 'cancelada') AS total_citas_hoy
+        `);
+
+        const resumen = resumenRows[0] || {};
+
+        res.json({
+            pacientes: Number(resumen.total_pacientes || 0),
+            doctores: Number(resumen.total_doctores || 0),
+            citas_hoy: Number(resumen.total_citas_hoy || 0),
+        });
+    } catch (error) {
+        console.error('Error al obtener resumen del dashboard de admin:', error);
+        res.status(500).json({ mensaje: 'Error interno al obtener el resumen del dashboard.' });
+    }
+};
+
+exports.obtenerAsuetos = async (req, res) => {
+    try {
+        const [asuetos] = await db.query(`
+            SELECT id, fecha, tipo, motivo, creado_en
+            FROM dias_asueto
+            ORDER BY fecha DESC, id DESC
+        `);
+
+        res.json(asuetos);
+    } catch (error) {
+        console.error('Error al obtener dias de asueto:', error);
+        res.status(500).json({ mensaje: 'Error interno al obtener los dias de asueto.' });
+    }
+};
+
+exports.crearAsueto = async (req, res) => {
+    const { fecha, tipo, motivo } = req.body || {};
+
+    try {
+        const fechaLimpia = String(fecha || '').trim();
+        const tipoLimpio = String(tipo || 'asueto').trim().toLowerCase();
+        const motivoLimpio = String(motivo || '').trim();
+
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLimpia)) {
+            return res.status(400).json({ mensaje: 'Fecha no valida. Usa el formato YYYY-MM-DD.' });
+        }
+
+        const tiposPermitidos = ['asueto', 'vacaciones'];
+        if (!tiposPermitidos.includes(tipoLimpio)) {
+            return res.status(400).json({ mensaje: 'Tipo no valido. Debe ser asueto o vacaciones.' });
+        }
+
+        await db.query(
+            'INSERT INTO dias_asueto (fecha, tipo, motivo) VALUES (?, ?, ?)',
+            [fechaLimpia, tipoLimpio, motivoLimpio || null]
+        );
+
+        res.status(201).json({
+            mensaje: 'Dia no laborable registrado exitosamente.',
+            asueto: {
+                fecha: fechaLimpia,
+                tipo: tipoLimpio,
+                motivo: motivoLimpio || null,
+            },
+        });
+    } catch (error) {
+        if (error && error.code === 'ER_DUP_ENTRY') {
+            return res.status(409).json({ mensaje: 'Ya existe un asueto/vacaciones registrado para esa fecha.' });
+        }
+
+        console.error('Error al crear dia de asueto:', error);
+        res.status(500).json({ mensaje: 'Error interno al crear el dia no laborable.' });
+    }
+};
+
+exports.eliminarAsueto = async (req, res) => {
+    const { id } = req.params;
+
+    try {
+        const [resultado] = await db.query('DELETE FROM dias_asueto WHERE id = ?', [id]);
+
+        if (!resultado || resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: 'El dia no laborable no existe.' });
+        }
+
+        res.json({ mensaje: 'Dia no laborable eliminado exitosamente.' });
+    } catch (error) {
+        console.error('Error al eliminar dia de asueto:', error);
+        res.status(500).json({ mensaje: 'Error interno al eliminar el dia no laborable.' });
+    }
+};
+
 exports.obtenerUsuarios = async (req, res) => {
     try {
         const [usuarios] = await db.query(`

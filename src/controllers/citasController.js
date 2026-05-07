@@ -108,6 +108,13 @@ exports.obtenerDisponibilidadDoctor = async (req, res) => {
             [doctor_id, inicioIso, finIso]
         );
 
+        const [asuetosSemana] = await db.query(
+            `SELECT fecha, tipo, motivo
+             FROM dias_asueto
+             WHERE fecha BETWEEN ? AND ?`,
+            [inicioIso, finIso]
+        );
+
         const formatearFechaSql = (value) => {
             if (!value) return '';
 
@@ -125,6 +132,10 @@ exports.obtenerDisponibilidadDoctor = async (req, res) => {
             ocupadas.map((c) => `${formatearFechaSql(c.fecha)}|${String(c.hora).slice(0, 5)}`)
         );
 
+        const asuetosMap = new Map(
+            asuetosSemana.map((a) => [formatearFechaSql(a.fecha), { tipo: a.tipo, motivo: a.motivo }])
+        );
+
         const slotsPorDia = (diaSemana) => {
             if (diaSemana === 0) return [];
             if (diaSemana === 6) return ['08:00', '09:00', '10:00', '11:00'];
@@ -138,6 +149,20 @@ exports.obtenerDisponibilidadDoctor = async (req, res) => {
 
             const fecha = toIsoDate(current);
             const diaSemana = current.getDay();
+            const asuetoInfo = asuetosMap.get(fecha);
+
+            if (asuetoInfo) {
+                dias.push({
+                    fecha,
+                    dia_semana: diaSemana,
+                    slots: [],
+                    asueto: true,
+                    tipo: asuetoInfo.tipo,
+                    motivo: asuetoInfo.motivo,
+                });
+                continue;
+            }
+
             const slots = slotsPorDia(diaSemana).map((hora) => ({
                 hora,
                 disponible: !ocupadasSet.has(`${fecha}|${hora}`),
@@ -187,6 +212,15 @@ exports.crearCita = async (req, res) => {
         const [doctores] = await db.query('SELECT codigo_id FROM doctores WHERE codigo_id = ?', [doctor_id]);
         if (doctores.length === 0) {
             return res.status(404).json({ mensaje: 'El doctor especificado no existe.' });
+        }
+
+        const [asuetoDia] = await db.query(
+            'SELECT id, tipo, motivo FROM dias_asueto WHERE fecha = ? LIMIT 1',
+            [fecha]
+        );
+
+        if (asuetoDia.length > 0) {
+            return res.status(409).json({ mensaje: 'La clinica no atiende en esa fecha por asueto/vacaciones.' });
         }
 
         

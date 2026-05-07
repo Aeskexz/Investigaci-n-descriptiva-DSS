@@ -6,6 +6,7 @@ const { verificarToken, requierePasswordActualizada } = require('../middleware/a
 router.use(verificarToken);
 router.use(requierePasswordActualizada);
 
+router.get('/pacientes/lista', expedienteController.listarPacientesParaExpediente);
 router.get('/:pacienteId', expedienteController.obtenerExpediente);
 router.post('/:pacienteId', expedienteController.agregarEntrada);
 router.put('/:pacienteId/:entradaId', expedienteController.editarEntrada);

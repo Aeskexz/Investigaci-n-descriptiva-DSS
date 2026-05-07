@@ -548,6 +548,33 @@
             margin-bottom: 16px;
         }
 
+        .admin-summary-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .admin-summary-card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 14px;
+        }
+
+        .admin-summary-value {
+            font-size: 26px;
+            font-weight: 700;
+            color: var(--primary);
+            line-height: 1.1;
+        }
+
+        .admin-summary-label {
+            margin-top: 4px;
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
         .admin-row {
             display: flex;
             justify-content: space-between;
@@ -678,6 +705,7 @@
             .grid,
             .form-row,
             .role-selector { grid-template-columns: 1fr; }
+            .admin-summary-grid { grid-template-columns: 1fr; }
             .header { padding: 20px; border-radius: 16px; }
             .header h1 { font-size: 24px; }
             .header-user { flex-direction: column; align-items: stretch; }
@@ -877,11 +905,42 @@
             
             <div class="admin-panel hidden" id="adminPanel">
                 <h3>Panel de Administrador</h3>
+
+                <div id="adminSummaryGrid" class="admin-summary-grid">
+                    <div class="admin-summary-card">
+                        <div id="adminSummaryPacientes" class="admin-summary-value">-</div>
+                        <div class="admin-summary-label">Pacientes registrados</div>
+                    </div>
+                    <div class="admin-summary-card">
+                        <div id="adminSummaryDoctores" class="admin-summary-value">-</div>
+                        <div class="admin-summary-label">Doctores registrados</div>
+                    </div>
+                    <div class="admin-summary-card">
+                        <div id="adminSummaryCitasHoy" class="admin-summary-value">-</div>
+                        <div class="admin-summary-label">Citas de hoy</div>
+                    </div>
+                </div>
                 
                 <div style="margin-bottom: 20px; display: flex; flex-direction: column; gap: 10px;">
+                    <button class="btn btn-outline" onclick="cargarResumenAdmin()">Actualizar Resumen</button>
                     <button class="btn btn-secondary" onclick="showAdminDoctors()">Gestionar Doctores</button>
                     <button class="btn btn-secondary" onclick="showAdminPatients()">Gestionar Pacientes</button>
+                    <button class="btn btn-secondary" onclick="showAdminHolidays()">Asuetos y Vacaciones</button>
                     <button class="btn btn-secondary" onclick="showAdminHistory()">Historial de Cambios</button>
+                </div>
+
+                <div id="adminHolidaysView" class="hidden">
+                    <h4 style="margin-bottom: 12px;">Configurar Asuetos y Vacaciones</h4>
+                    <form onsubmit="adminCreateHoliday(event)" style="display: grid; gap: 12px; grid-template-columns: 1fr 1fr; margin-bottom: 14px;">
+                        <input type="date" id="adminHolidayDate" required>
+                        <select id="adminHolidayType" required>
+                            <option value="asueto">Asueto</option>
+                            <option value="vacaciones">Vacaciones</option>
+                        </select>
+                        <input type="text" id="adminHolidayReason" placeholder="Motivo (opcional)" style="grid-column: 1/-1;">
+                        <button type="submit" class="btn btn-primary" style="grid-column: 1/-1;">Guardar Día No Laborable</button>
+                    </form>
+                    <div id="adminHolidaysList"></div>
                 </div>
 
                 <div id="adminDoctorsView" class="hidden">
@@ -1109,6 +1168,37 @@
                         </div>
                     </div>
                 </div>
+
+                <div class="card" style="margin-top: 24px;">
+                    <div class="card-header">
+                        <div class="card-icon">E</div>
+                        <div>
+                            <div class="card-title">Expedientes de Pacientes</div>
+                            <div class="card-subtitle">Consulta el expediente de todos los pacientes registrados</div>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 10px; margin-bottom: 20px; align-items: center;">
+                        <button class="btn btn-secondary" onclick="cargarPacientesDoctorExpediente()">
+                            Actualizar Pacientes
+                        </button>
+                    </div>
+
+                    <input
+                        type="text"
+                        id="doctorPatientsSearch"
+                        placeholder="Buscar paciente por ID, nombre, username, correo o teléfono"
+                        oninput="aplicarBusquedaPacientesDoctor()"
+                        style="margin-bottom: 12px;"
+                    >
+
+                    <div id="doctorPatientsList" class="appointments-list">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <span>Cargando pacientes...</span>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1197,6 +1287,7 @@
         let _adminDoctorsData = [];
         let _adminPatientsData = [];
         let _doctorCitasData = [];
+        let _doctorPatientsData = [];
 
         function requiereCambioPassword() {
             return Boolean(usuario && usuario.requiereCambioPassword);
@@ -1292,12 +1383,14 @@
                 document.getElementById('adminPanel').classList.remove('hidden');
                 document.getElementById('pacientePanel').classList.add('hidden');
                 document.getElementById('doctorPanel').classList.add('hidden');
+                cargarResumenAdmin();
                 showAdminDoctors();
             } else if (usuario.rol === 'doctor') {
                 document.getElementById('adminPanel').classList.add('hidden');
                 document.getElementById('pacientePanel').classList.add('hidden');
                 document.getElementById('doctorPanel').classList.remove('hidden');
                 cargarCitasDoctor();
+                cargarPacientesDoctorExpediente();
                 cargarEstadoDisponibilidadDoctor();
             } else {
                 document.getElementById('adminPanel').classList.add('hidden');
@@ -2037,6 +2130,23 @@
             }
         }
 
+        async function cargarPacientesDoctorExpediente() {
+            try {
+                const res = await fetch(`${API_URL}/expediente/pacientes/lista`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const pacientes = await res.json();
+                if (!res.ok) throw new Error(pacientes.mensaje || 'No se pudo cargar el listado de pacientes.');
+
+                _doctorPatientsData = Array.isArray(pacientes) ? pacientes : [];
+                aplicarBusquedaPacientesDoctor();
+            } catch (err) {
+                console.error(err);
+                document.getElementById('doctorPatientsList').innerHTML = '<p style="color: var(--error); text-align: center;">No se pudo cargar el listado de pacientes.</p>';
+            }
+        }
+
         async function actualizarEstadoCita(id, estado) {
             try {
                 const res = await fetch(`${API_URL}/citas/${id}/estado`, {
@@ -2060,6 +2170,7 @@
             document.getElementById('adminDoctorsView').classList.toggle('hidden');
             document.getElementById('adminPatientsView').classList.add('hidden');
             document.getElementById('adminHistoryView').classList.add('hidden');
+            document.getElementById('adminHolidaysView').classList.add('hidden');
             cargarAdminDoctors();
         }
 
@@ -2067,15 +2178,139 @@
             document.getElementById('adminPatientsView').classList.toggle('hidden');
             document.getElementById('adminDoctorsView').classList.add('hidden');
             document.getElementById('adminHistoryView').classList.add('hidden');
+            document.getElementById('adminHolidaysView').classList.add('hidden');
             cargarAdminPatients();
+        }
+
+        async function showAdminHolidays() {
+            document.getElementById('adminHolidaysView').classList.toggle('hidden');
+            document.getElementById('adminDoctorsView').classList.add('hidden');
+            document.getElementById('adminPatientsView').classList.add('hidden');
+            document.getElementById('adminHistoryView').classList.add('hidden');
+
+            if (!document.getElementById('adminHolidaysView').classList.contains('hidden')) {
+                await cargarAdminHolidays();
+            }
         }
 
         async function showAdminHistory() {
             document.getElementById('adminHistoryView').classList.toggle('hidden');
             document.getElementById('adminDoctorsView').classList.add('hidden');
             document.getElementById('adminPatientsView').classList.add('hidden');
+            document.getElementById('adminHolidaysView').classList.add('hidden');
             if (!document.getElementById('adminHistoryView').classList.contains('hidden')) {
                 await cargarAdminHistory();
+            }
+        }
+
+        function _fmtDateOnly(fecha) {
+            if (!fecha) return '-';
+            const d = new Date(`${String(fecha).slice(0, 10)}T00:00:00`);
+            if (Number.isNaN(d.getTime())) return String(fecha).slice(0, 10);
+            return d.toLocaleDateString('es-ES', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+
+        function renderAdminHolidays(asuetos) {
+            const list = document.getElementById('adminHolidaysList');
+
+            if (!Array.isArray(asuetos) || asuetos.length === 0) {
+                list.innerHTML = '<p style="color: var(--text-muted);">No hay d&iacute;as no laborables registrados.</p>';
+                return;
+            }
+
+            list.innerHTML = asuetos.map(a => `
+                <div class="admin-row">
+                    <div>
+                        <strong>${_fmtDateOnly(a.fecha)}</strong>
+                        <br><small>${a.tipo || 'asueto'}${a.motivo ? ' · ' + a.motivo : ''}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-danger btn-sm" onclick='adminDeleteHoliday(${JSON.stringify(a.id)}, ${JSON.stringify(a.fecha)})'>Eliminar</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function cargarAdminHolidays() {
+            try {
+                const res = await fetch(`${API_URL}/admin/asuetos`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const asuetos = await res.json();
+                if (!res.ok) throw new Error(asuetos.mensaje || 'No se pudieron cargar los asuetos.');
+                renderAdminHolidays(asuetos);
+            } catch (err) {
+                document.getElementById('adminHolidaysList').innerHTML = `<p style="color: var(--error);">${err.message}</p>`;
+            }
+        }
+
+        async function adminCreateHoliday(e) {
+            e.preventDefault();
+
+            const fecha = document.getElementById('adminHolidayDate').value;
+            const tipo = document.getElementById('adminHolidayType').value;
+            const motivo = document.getElementById('adminHolidayReason').value;
+
+            try {
+                const res = await fetch(`${API_URL}/admin/asuetos`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ fecha, tipo, motivo })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo guardar el dia no laborable.');
+
+                alert('Dia no laborable guardado correctamente.');
+                e.target.reset();
+                await cargarAdminHolidays();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function adminDeleteHoliday(id, fecha) {
+            if (!confirm(`¿Eliminar el dia no laborable ${_fmtDateOnly(fecha)}?`)) return;
+
+            try {
+                const res = await fetch(`${API_URL}/admin/asuetos/${id}`, {
+                    method: 'DELETE',
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo eliminar el dia no laborable.');
+
+                await cargarAdminHolidays();
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function cargarResumenAdmin() {
+            try {
+                const res = await fetch(`${API_URL}/admin/resumen`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo cargar el resumen.');
+
+                document.getElementById('adminSummaryPacientes').textContent = String(data.pacientes ?? 0);
+                document.getElementById('adminSummaryDoctores').textContent = String(data.doctores ?? 0);
+                document.getElementById('adminSummaryCitasHoy').textContent = String(data.citas_hoy ?? 0);
+            } catch (err) {
+                document.getElementById('adminSummaryPacientes').textContent = '-';
+                document.getElementById('adminSummaryDoctores').textContent = '-';
+                document.getElementById('adminSummaryCitasHoy').textContent = '-';
+                console.error(err);
             }
         }
 
@@ -2129,6 +2364,7 @@
                 const doctores = await res.json();
                 _adminDoctorsData = Array.isArray(doctores) ? doctores : [];
                 aplicarBusquedaAdminDoctores();
+                cargarResumenAdmin();
             } catch (err) {
                 console.error(err);
             }
@@ -2142,6 +2378,7 @@
                 const pacientes = await res.json();
                 _adminPatientsData = Array.isArray(pacientes) ? pacientes : [];
                 aplicarBusquedaAdminPacientes();
+                cargarResumenAdmin();
             } catch (err) {
                 console.error(err);
             }
@@ -2259,6 +2496,39 @@
                 c.telefono
             ], termino));
             renderCitasDoctor(filtradas);
+        }
+
+        function renderPacientesDoctorExpediente(pacientes) {
+            const container = document.getElementById('doctorPatientsList');
+
+            if (!Array.isArray(pacientes) || pacientes.length === 0) {
+                container.innerHTML = '<p style="color: var(--text-muted); text-align: center;">No hay pacientes registrados</p>';
+                return;
+            }
+
+            container.innerHTML = pacientes.map(p => `
+                <div class="admin-row">
+                    <div>
+                        <strong>${p.nombre || 'Paciente'}</strong>
+                        <br><small>ID: ${p.id || '-'} · ${p.email || '-'} · @${p.username || '-'}${p.telefono ? ' · ' + p.telefono : ''}</small>
+                    </div>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-outline btn-sm" onclick='abrirExpedienteModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.nombre || "Paciente")})'>Abrir expediente</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function aplicarBusquedaPacientesDoctor() {
+            const termino = _normalizarBusqueda(document.getElementById('doctorPatientsSearch')?.value);
+            const filtrados = _doctorPatientsData.filter(p => _coincideBusqueda([
+                p.id,
+                p.nombre,
+                p.username,
+                p.email,
+                p.telefono
+            ], termino));
+            renderPacientesDoctorExpediente(filtrados);
         }
 
         async function adminCreateDoctor(e) {

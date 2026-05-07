@@ -14,6 +14,10 @@ router.use(esAdmin);
 router.use(requierePasswordActualizada);
 
 
+router.get('/resumen', adminController.obtenerResumenDashboard);
+router.get('/asuetos', adminController.obtenerAsuetos);
+router.post('/asuetos', adminController.crearAsueto);
+router.delete('/asuetos/:id', adminController.eliminarAsueto);
 router.get('/usuarios', adminController.obtenerUsuarios);
 router.get('/historial-cambios', adminController.obtenerHistorialCambios);
 router.get('/doctores', adminController.obtenerDoctores);
