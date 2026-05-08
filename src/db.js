@@ -141,6 +141,7 @@ async function ensureAccountColumns(tableName) {
 
     if (tableName === 'doctores') {
         await addColumnIfMissing(tableName, 'disponible_consulta', 'TINYINT(1) NOT NULL DEFAULT 1');
+        await addColumnIfMissing(tableName, 'hora_libre', 'TIME NULL');
         await promisePool.query('UPDATE doctores SET disponible_consulta = 1 WHERE disponible_consulta IS NULL');
     }
 }

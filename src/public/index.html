@@ -1151,6 +1151,20 @@
                         <button id="doctorAvailabilityBtn" class="btn btn-secondary" onclick="toggleDisponibilidadDoctor()">
                             Disponibilidad
                         </button>
+                        <label for="doctorBreakHour" style="margin: 0 0 0 6px; white-space: nowrap;">Hora libre (L-V)</label>
+                        <select id="doctorBreakHour" style="max-width: 180px;">
+                            <option value="">Sin hora libre</option>
+                            <option value="08:00">08:00</option>
+                            <option value="09:00">09:00</option>
+                            <option value="10:00">10:00</option>
+                            <option value="11:00">11:00</option>
+                            <option value="12:00">12:00</option>
+                            <option value="13:00">13:00</option>
+                            <option value="14:00">14:00</option>
+                            <option value="15:00">15:00</option>
+                            <option value="16:00">16:00</option>
+                        </select>
+                        <button class="btn btn-outline btn-sm" onclick="guardarHoraLibreDoctor()">Guardar hora libre</button>
                     </div>
 
                     <input
@@ -1288,6 +1302,67 @@
         let _adminPatientsData = [];
         let _doctorCitasData = [];
         let _doctorPatientsData = [];
+        const INACTIVITY_LIMIT_MS = 10 * 60 * 1000;
+        const _actividadEventos = ['click', 'keydown', 'mousemove', 'mousedown', 'touchstart', 'scroll'];
+        let _inactivityTimer = null;
+        let _inactivityListenersAdded = false;
+        let _logoutPorInactividadEnCurso = false;
+
+        function _reiniciarTemporizadorInactividad() {
+            if (!token || !usuario) return;
+
+            if (_inactivityTimer) {
+                clearTimeout(_inactivityTimer);
+            }
+
+            _inactivityTimer = setTimeout(() => {
+                if (!token || !usuario || _logoutPorInactividadEnCurso) return;
+
+                _logoutPorInactividadEnCurso = true;
+                alert('Tu sesión se cerró automáticamente por 10 minutos de inactividad.');
+                logout();
+            }, INACTIVITY_LIMIT_MS);
+        }
+
+        function _registrarActividadUsuario() {
+            _reiniciarTemporizadorInactividad();
+        }
+
+        function _manejarCambioVisibilidad() {
+            if (document.visibilityState === 'visible') {
+                _reiniciarTemporizadorInactividad();
+            }
+        }
+
+        function iniciarControlInactividad() {
+            if (_inactivityListenersAdded) {
+                _reiniciarTemporizadorInactividad();
+                return;
+            }
+
+            _actividadEventos.forEach((evento) => {
+                window.addEventListener(evento, _registrarActividadUsuario);
+            });
+            document.addEventListener('visibilitychange', _manejarCambioVisibilidad);
+
+            _inactivityListenersAdded = true;
+            _reiniciarTemporizadorInactividad();
+        }
+
+        function detenerControlInactividad() {
+            if (_inactivityTimer) {
+                clearTimeout(_inactivityTimer);
+                _inactivityTimer = null;
+            }
+
+            if (!_inactivityListenersAdded) return;
+
+            _actividadEventos.forEach((evento) => {
+                window.removeEventListener(evento, _registrarActividadUsuario);
+            });
+            document.removeEventListener('visibilitychange', _manejarCambioVisibilidad);
+            _inactivityListenersAdded = false;
+        }
 
         function requiereCambioPassword() {
             return Boolean(usuario && usuario.requiereCambioPassword);
@@ -1351,12 +1426,14 @@
 
         
         function showLogin() {
+            detenerControlInactividad();
             document.getElementById('loginView').classList.remove('hidden');
             document.getElementById('registerView').classList.add('hidden');
             document.getElementById('mainContent').classList.add('hidden');
         }
 
         function showRegister() {
+            detenerControlInactividad();
             document.getElementById('loginView').classList.add('hidden');
             document.getElementById('registerView').classList.remove('hidden');
             document.getElementById('mainContent').classList.add('hidden');
@@ -1373,6 +1450,8 @@
             document.getElementById('userRole').textContent = usuario.rol.toUpperCase();
             document.getElementById('deleteAccountBtn').style.display = usuario.rol === 'admin' ? 'none' : 'inline-flex';
             actualizarBotonDisponibilidadDoctor();
+            _logoutPorInactividadEnCurso = false;
+            iniciarControlInactividad();
 
             if (requiereCambioPassword()) {
                 mostrarModalCambioPasswordObligatorio();
@@ -1474,6 +1553,7 @@
         }
 
         function logout() {
+            detenerControlInactividad();
             token = null;
             usuario = null;
             localStorage.removeItem('token');
@@ -1494,6 +1574,13 @@
             btn.style.color = '#FFFFFF';
         }
 
+        function actualizarSelectorHoraLibreDoctor() {
+            const select = document.getElementById('doctorBreakHour');
+            if (!select || !usuario || usuario.rol !== 'doctor') return;
+
+            select.value = usuario.hora_libre || '';
+        }
+
         async function cargarEstadoDisponibilidadDoctor() {
             if (!usuario || usuario.rol !== 'doctor') return;
 
@@ -1506,8 +1593,10 @@
                 if (!res.ok) throw new Error(data.mensaje || 'No se pudo cargar disponibilidad.');
 
                 usuario.disponible_consulta = Boolean(data.ajustes.disponible_consulta);
+                usuario.hora_libre = data.ajustes.hora_libre || null;
                 localStorage.setItem('usuario', JSON.stringify(usuario));
                 actualizarBotonDisponibilidadDoctor();
+                actualizarSelectorHoraLibreDoctor();
             } catch (err) {
                 console.error(err);
             }
@@ -1535,6 +1624,34 @@
                 localStorage.setItem('usuario', JSON.stringify(usuario));
                 actualizarBotonDisponibilidadDoctor();
                 alert(data.mensaje || 'Disponibilidad actualizada.');
+            } catch (err) {
+                alert(err.message);
+            }
+        }
+
+        async function guardarHoraLibreDoctor() {
+            if (!usuario || usuario.rol !== 'doctor') return;
+
+            const select = document.getElementById('doctorBreakHour');
+            const hora_libre = select ? String(select.value || '').trim() : '';
+
+            try {
+                const res = await fetch(`${API_URL}/auth/hora-libre`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ hora_libre: hora_libre || null })
+                });
+
+                const data = await res.json();
+                if (!res.ok) throw new Error(data.mensaje || 'No se pudo actualizar la hora libre.');
+
+                usuario.hora_libre = data.hora_libre || null;
+                localStorage.setItem('usuario', JSON.stringify(usuario));
+                actualizarSelectorHoraLibreDoctor();
+                alert(data.mensaje || 'Hora libre actualizada.');
             } catch (err) {
                 alert(err.message);
             }
@@ -1971,6 +2088,17 @@
             return { valido: true };
         }
 
+        function esFechaHoraPasada(fecha, hora) {
+            if (!fecha || !hora) return false;
+
+            const fechaHora = new Date(`${fecha}T${hora}`);
+            if (Number.isNaN(fechaHora.getTime())) {
+                return false;
+            }
+
+            return fechaHora < new Date();
+        }
+
         
         function validarFechaSeleccionada() {
             const fechaInput = document.getElementById('citaFecha');
@@ -2024,6 +2152,14 @@
                 const resultado = document.getElementById('citaResultado');
                 resultado.className = 'result-box error';
                 resultado.textContent = validacionHorario.mensaje;
+                resultado.classList.remove('hidden');
+                return;
+            }
+
+            if (esFechaHoraPasada(fecha, hora)) {
+                const resultado = document.getElementById('citaResultado');
+                resultado.className = 'result-box error';
+                resultado.textContent = 'No puedes agendar una cita en una fecha u hora anterior a la actual.';
                 resultado.classList.remove('hidden');
                 return;
             }

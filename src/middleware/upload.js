@@ -1,21 +1,29 @@
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const {
+    uploadDir,
+    ensureUploadDir,
+    getProfileOwnerId,
+    buildProfileFilename,
+    deleteProfilePhotosByUserId,
+} = require('../utils/profilePhotos');
 
-const uploadDir = path.join(__dirname, '../../uploads/perfiles');
-
-if (!fs.existsSync(uploadDir)) {
-    fs.mkdirSync(uploadDir, { recursive: true });
-}
+ensureUploadDir();
 
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
         cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
-        const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+        const ownerId = getProfileOwnerId(req);
         const ext = path.extname(file.originalname);
-        cb(null, 'perfil-' + uniqueSuffix + ext);
+        if (!ownerId) {
+            return cb(null, `perfil-${Date.now()}${ext.toLowerCase()}`);
+        }
+
+        const finalFilename = buildProfileFilename(ownerId, ext);
+        deleteProfilePhotosByUserId(ownerId, { excludeFilename: finalFilename });
+        cb(null, finalFilename);
     }
 });
 

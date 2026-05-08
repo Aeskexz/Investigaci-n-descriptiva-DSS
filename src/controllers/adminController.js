@@ -4,8 +4,11 @@ const { generateUniqueUsername, normalizeUsername, usernameExists } = require('.
 const { generateUniquePublicUserId } = require('../utils/userId');
 const { emailExists } = require('../utils/accountDirectory');
 const { registrarCambio } = require('../utils/historialCambios');
-const path = require('path');
-const fs = require('fs');
+const {
+    deleteStoredProfilePath,
+    buildProfilePublicPath,
+    deleteProfilePhotosByUserId,
+} = require('../utils/profilePhotos');
 
 exports.obtenerHistorialCambios = async (req, res) => {
     try {
@@ -303,12 +306,17 @@ exports.eliminarDoctor = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [doctorExistente] = await db.query('SELECT codigo_id FROM doctores WHERE codigo_id = ?', [id]);
+        const [doctorExistente] = await db.query('SELECT codigo_id, foto_perfil FROM doctores WHERE codigo_id = ?', [id]);
         if (doctorExistente.length === 0) {
             return res.status(404).json({ mensaje: 'El doctor no existe.' });
         }
 
         await db.query('DELETE FROM doctores WHERE codigo_id = ?', [id]);
+
+        if (doctorExistente[0].foto_perfil) {
+            deleteStoredProfilePath(doctorExistente[0].foto_perfil);
+        }
+        deleteProfilePhotosByUserId(id);
 
         await registrarCambio({
             tipo: 'ELIMINACION',
@@ -429,12 +437,17 @@ exports.eliminarPaciente = async (req, res) => {
     const { id } = req.params;
 
     try {
-        const [pacienteExistente] = await db.query('SELECT codigo_id FROM pacientes WHERE codigo_id = ?', [id]);
+        const [pacienteExistente] = await db.query('SELECT codigo_id, foto_perfil FROM pacientes WHERE codigo_id = ?', [id]);
         if (pacienteExistente.length === 0) {
             return res.status(404).json({ mensaje: 'El paciente no existe.' });
         }
 
         await db.query('DELETE FROM pacientes WHERE codigo_id = ?', [id]);
+
+        if (pacienteExistente[0].foto_perfil) {
+            deleteStoredProfilePath(pacienteExistente[0].foto_perfil);
+        }
+        deleteProfilePhotosByUserId(id);
 
         await registrarCambio({
             tipo: 'ELIMINACION',
@@ -481,22 +494,12 @@ exports.cambiarFotoPerfilDoctor = async (req, res) => {
 
         if (doctores.length === 0) {
             if (req.file) {
-                fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
-                    if (err) console.error('Error al eliminar archivo:', err);
-                });
+                deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
             }
             return res.status(404).json({ mensaje: 'El doctor no existe.' });
         }
 
-        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
-
-        if (doctores[0].foto_perfil) {
-            const fotoAnterior = doctores[0].foto_perfil.replace('/uploads/perfiles/', '');
-            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
-            if (fs.existsSync(rutaAnterior)) {
-                fs.unlinkSync(rutaAnterior);
-            }
-        }
+        const fotoPerfil = buildProfilePublicPath(req.file.filename);
 
         await db.query('UPDATE doctores SET foto_perfil = ? WHERE codigo_id = ?', [fotoPerfil, doctorId]);
 
@@ -506,9 +509,7 @@ exports.cambiarFotoPerfilDoctor = async (req, res) => {
         });
     } catch (error) {
         if (req.file) {
-            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
-                if (err) console.error('Error al eliminar archivo:', err);
-            });
+            deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
         }
         console.error('Error al cambiar foto de perfil del doctor:', error);
         res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });

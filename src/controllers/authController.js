@@ -10,8 +10,11 @@ const {
     getTableByRole,
 } = require('../utils/accountDirectory');
 const { registrarCambio } = require('../utils/historialCambios');
-const path = require('path');
-const fs = require('fs');
+const {
+    deleteStoredProfilePath,
+    buildProfilePublicPath,
+    deleteProfilePhotosByUserId,
+} = require('../utils/profilePhotos');
 
 const JWT_SECRET = process.env.JWT_SECRET || 'tu_clave_secreta_muy_segura';
 
@@ -210,15 +213,17 @@ exports.obtenerAjustesCuenta = async (req, res) => {
         let telefono = '';
         let foto_perfil = null;
         let disponible_consulta = null;
+        let hora_libre = null;
 
         if (usuario.rol === 'doctor') {
             const [doctores] = await db.query(
-                'SELECT nombre, foto_perfil, disponible_consulta FROM doctores WHERE codigo_id = ?',
+                'SELECT nombre, foto_perfil, disponible_consulta, hora_libre FROM doctores WHERE codigo_id = ?',
                 [usuario.codigo_id]
             );
             nombre = doctores[0]?.nombre || '';
             foto_perfil = doctores[0]?.foto_perfil || null;
             disponible_consulta = Boolean(doctores[0]?.disponible_consulta);
+            hora_libre = doctores[0]?.hora_libre ? String(doctores[0].hora_libre).slice(0, 5) : null;
         }
 
         if (usuario.rol === 'paciente') {
@@ -241,6 +246,7 @@ exports.obtenerAjustesCuenta = async (req, res) => {
                 telefono,
                 foto_perfil,
                 disponible_consulta,
+                hora_libre,
                 requiere_cambio_password: Boolean(usuario.requiere_cambio_password),
                 creado_en: usuario.creado_en,
             },
@@ -248,6 +254,54 @@ exports.obtenerAjustesCuenta = async (req, res) => {
     } catch (error) {
         console.error('Error al obtener ajustes de cuenta:', error);
         res.status(500).json({ mensaje: 'Error interno al obtener los ajustes de cuenta.' });
+    }
+};
+
+exports.actualizarHoraLibreDoctor = async (req, res) => {
+    const { hora_libre } = req.body || {};
+
+    try {
+        if (req.usuario.rol !== 'doctor') {
+            return res.status(403).json({ mensaje: 'Solo los doctores pueden actualizar su hora libre.' });
+        }
+
+        let horaLibreNormalizada = null;
+
+        if (hora_libre !== null && hora_libre !== undefined && String(hora_libre).trim() !== '') {
+            const hora = String(hora_libre).trim();
+            if (!/^\d{2}:\d{2}$/.test(hora)) {
+                return res.status(400).json({ mensaje: 'La hora libre debe tener formato HH:MM.' });
+            }
+
+            const [hh, mm] = hora.split(':').map(Number);
+            if (
+                Number.isNaN(hh) || Number.isNaN(mm) ||
+                hh < 8 || hh > 16 || mm !== 0
+            ) {
+                return res.status(400).json({ mensaje: 'La hora libre debe ser en punto entre 08:00 y 16:00.' });
+            }
+
+            horaLibreNormalizada = `${String(hh).padStart(2, '0')}:00:00`;
+        }
+
+        const [resultado] = await db.query(
+            'UPDATE doctores SET hora_libre = ? WHERE codigo_id = ?',
+            [horaLibreNormalizada, req.usuario.id]
+        );
+
+        if (resultado.affectedRows === 0) {
+            return res.status(404).json({ mensaje: 'Doctor no encontrado.' });
+        }
+
+        return res.json({
+            mensaje: horaLibreNormalizada
+                ? 'Hora libre actualizada exitosamente.'
+                : 'Hora libre eliminada exitosamente.',
+            hora_libre: horaLibreNormalizada ? String(horaLibreNormalizada).slice(0, 5) : null,
+        });
+    } catch (error) {
+        console.error('Error al actualizar hora libre del doctor:', error);
+        return res.status(500).json({ mensaje: 'Error interno al actualizar la hora libre.' });
     }
 };
 
@@ -435,7 +489,7 @@ exports.eliminarMiCuenta = async (req, res) => {
     try {
         const tabla = getTableByRole(req.usuario.rol);
         const [cuentas] = await db.query(
-            `SELECT codigo_id, username FROM ${tabla} WHERE codigo_id = ? LIMIT 1`,
+            `SELECT codigo_id, username, foto_perfil FROM ${tabla} WHERE codigo_id = ? LIMIT 1`,
             [req.usuario.id]
         );
 
@@ -445,6 +499,11 @@ exports.eliminarMiCuenta = async (req, res) => {
         if (resultado.affectedRows === 0) {
             return res.status(404).json({ mensaje: 'Usuario no encontrado.' });
         }
+
+        if (cuenta?.foto_perfil) {
+            deleteStoredProfilePath(cuenta.foto_perfil);
+        }
+        deleteProfilePhotosByUserId(req.usuario.id);
 
         if (cuenta) {
             await registrarCambio({
@@ -516,24 +575,14 @@ exports.cambiarFotoPerfil = async (req, res) => {
         }
 
         const tabla = getTableByRole(rol);
-        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
+        const fotoPerfil = buildProfilePublicPath(req.file.filename);
         const [perfil] = await db.query(`SELECT codigo_id, foto_perfil FROM ${tabla} WHERE codigo_id = ?`, [req.usuario.id]);
 
         if (perfil.length === 0) {
             if (req.file) {
-                fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
-                    if (err) console.error('Error al eliminar archivo:', err);
-                });
+                deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
             }
             return res.status(404).json({ mensaje: `Perfil de ${rol} no encontrado.` });
-        }
-
-        if (perfil[0].foto_perfil) {
-            const fotoAnterior = perfil[0].foto_perfil.replace('/uploads/perfiles/', '');
-            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
-            if (fs.existsSync(rutaAnterior)) {
-                fs.unlinkSync(rutaAnterior);
-            }
         }
 
         await db.query(`UPDATE ${tabla} SET foto_perfil = ? WHERE codigo_id = ?`, [fotoPerfil, req.usuario.id]);
@@ -544,9 +593,7 @@ exports.cambiarFotoPerfil = async (req, res) => {
         });
     } catch (error) {
         if (req.file) {
-            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
-                if (err) console.error('Error al eliminar archivo:', err);
-            });
+            deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
         }
         console.error('Error al cambiar foto de perfil:', error);
         res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });
@@ -575,15 +622,7 @@ exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
             return res.status(404).json({ mensaje: 'El doctor no existe.' });
         }
 
-        const fotoPerfil = `/uploads/perfiles/${req.file.filename}`;
-
-        if (doctores[0].foto_perfil) {
-            const fotoAnterior = doctores[0].foto_perfil.replace('/uploads/perfiles/', '');
-            const rutaAnterior = path.join(__dirname, '../../uploads/perfiles', fotoAnterior);
-            if (fs.existsSync(rutaAnterior)) {
-                fs.unlinkSync(rutaAnterior);
-            }
-        }
+        const fotoPerfil = buildProfilePublicPath(req.file.filename);
 
         await db.query('UPDATE doctores SET foto_perfil = ? WHERE codigo_id = ?', [fotoPerfil, doctorId]);
 
@@ -593,9 +632,7 @@ exports.cambiarFotoPerfilDoctorAdmin = async (req, res) => {
         });
     } catch (error) {
         if (req.file) {
-            fs.unlink(path.join(__dirname, '../../uploads/perfiles', req.file.filename), (err) => {
-                if (err) console.error('Error al eliminar archivo:', err);
-            });
+            deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
         }
         console.error('Error al cambiar foto de perfil del doctor:', error);
         res.status(500).json({ mensaje: 'Error interno al cambiar la foto de perfil.' });

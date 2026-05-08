@@ -15,6 +15,36 @@ async function generarCodigoCita() {
     return codigo;
 }
 
+function construirFechaHoraLocal(fecha, hora) {
+    const fechaLimpia = String(fecha || '').trim();
+    const horaLimpia = String(hora || '').trim();
+
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaLimpia)) {
+        return null;
+    }
+
+    const partesHora = horaLimpia.split(':');
+    if (partesHora.length < 2) {
+        return null;
+    }
+
+    const hh = Number(partesHora[0]);
+    const mm = Number(partesHora[1]);
+    const ss = partesHora.length >= 3 ? Number(partesHora[2]) : 0;
+
+    if (
+        Number.isNaN(hh) || Number.isNaN(mm) || Number.isNaN(ss) ||
+        hh < 0 || hh > 23 || mm < 0 || mm > 59 || ss < 0 || ss > 59
+    ) {
+        return null;
+    }
+
+    const [y, m, d] = fechaLimpia.split('-').map(Number);
+    const fechaHora = new Date(y, m - 1, d, hh, mm, ss, 0);
+
+    return Number.isNaN(fechaHora.getTime()) ? null : fechaHora;
+}
+
 
 exports.obtenerCitas = async (req, res) => {
     const usuario = req.usuario;
@@ -75,10 +105,12 @@ exports.obtenerDisponibilidadDoctor = async (req, res) => {
             return res.status(400).json({ mensaje: 'El doctor es requerido.' });
         }
 
-        const [doctores] = await db.query('SELECT codigo_id FROM doctores WHERE codigo_id = ? LIMIT 1', [doctor_id]);
+        const [doctores] = await db.query('SELECT codigo_id, hora_libre FROM doctores WHERE codigo_id = ? LIMIT 1', [doctor_id]);
         if (doctores.length === 0) {
             return res.status(404).json({ mensaje: 'El doctor especificado no existe.' });
         }
+
+        const horaLibreDoctor = doctores[0].hora_libre ? String(doctores[0].hora_libre).slice(0, 5) : null;
 
         const baseDate = fecha_inicio
             ? new Date(`${String(fecha_inicio)}T00:00:00`)
@@ -165,7 +197,7 @@ exports.obtenerDisponibilidadDoctor = async (req, res) => {
 
             const slots = slotsPorDia(diaSemana).map((hora) => ({
                 hora,
-                disponible: !ocupadasSet.has(`${fecha}|${hora}`),
+                disponible: !ocupadasSet.has(`${fecha}|${hora}`) && !(diaSemana >= 1 && diaSemana <= 5 && hora === horaLibreDoctor),
             }));
 
             dias.push({ fecha, dia_semana: diaSemana, slots });
@@ -205,13 +237,28 @@ exports.crearCita = async (req, res) => {
             return res.status(400).json({ mensaje: 'Todos los campos son requeridos.' });
         }
 
+        const fechaHoraCita = construirFechaHoraLocal(fecha, hora);
+        if (!fechaHoraCita) {
+            return res.status(400).json({ mensaje: 'La fecha u hora de la cita no es valida.' });
+        }
+
+        if (fechaHoraCita < new Date()) {
+            return res.status(400).json({ mensaje: 'No puedes agendar una cita en una fecha u hora anterior a la actual.' });
+        }
+
         
         const pacienteId = usuario.id;
 
         
-        const [doctores] = await db.query('SELECT codigo_id FROM doctores WHERE codigo_id = ?', [doctor_id]);
+        const [doctores] = await db.query('SELECT codigo_id, hora_libre FROM doctores WHERE codigo_id = ?', [doctor_id]);
         if (doctores.length === 0) {
             return res.status(404).json({ mensaje: 'El doctor especificado no existe.' });
+        }
+
+        const horaLibreDoctor = doctores[0].hora_libre ? String(doctores[0].hora_libre).slice(0, 5) : null;
+        const diaSemanaCita = new Date(`${fecha}T00:00:00`).getDay();
+        if (horaLibreDoctor && diaSemanaCita >= 1 && diaSemanaCita <= 5 && String(hora).slice(0, 5) === horaLibreDoctor) {
+            return res.status(409).json({ mensaje: `El doctor tiene una hora libre configurada a las ${horaLibreDoctor}.` });
         }
 
         const [asuetoDia] = await db.query(
