@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<reporte>
+    <paciente>
+        <id>P-83469519</id>
+        <nombre>captcha</nombre>
+        <email>prueba@prueba.com</email>
+        <telefono>88465464656</telefono>
+    </paciente>
+    <meta>
+        <generado_por>DOCTOR doctor@clin.com</generado_por>
+        <generado_en>2026-05-08T07:30:31.619Z</generado_en>
+    </meta>
+    <entradas>
+        <entrada>
+            <fecha_consulta>Sat May 02 2026 00:00:00 GMT-0600 (hora estándar central)</fecha_consulta>
+            <doctor_nombre>doctor</doctor_nombre>
+            <sintomas>conjutivitis, embolia</sintomas>
+            <diagnostico>observacion</diagnostico>
+            <tratamiento>paracetamol</tratamiento>
+            <notas></notas>
+            <creado_en>Sat May 02 2026 15:28:48 GMT-0600 (hora estándar central)</creado_en>
+        </entrada>
+    </entradas>
+</reporte>

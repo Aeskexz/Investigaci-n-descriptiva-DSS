@@ -43,6 +43,44 @@ Para arrancar:
 - `npm start` — servidor en producción.
 - `npm run dev` — servidor con nodemon.
 
+## Informes PDF con JasperReports
+
+El sistema incluye generacion de PDF del historial medico por paciente usando JasperStarter.
+
+### Requisitos adicionales
+
+- Java JDK 11 o superior.
+- JasperStarter instalado y disponible en PATH.
+
+Si no están disponibles Java/JasperStarter, el sistema usa un motor de respaldo con PDFKit para no bloquear la descarga del informe.
+
+Opcionalmente, si el binario no esta en PATH, configura en `.env`:
+
+```bash
+JASPERSTARTER_BIN=C:\\ruta\\a\\jasperstarter.exe
+```
+
+Para forzar el motor de respaldo (sin Jasper), puedes usar:
+
+```bash
+REPORT_ENGINE=pdfkit
+```
+
+### Endpoint de informe
+
+- `GET /api/reportes/pacientes/:pacienteId/historial-medico.pdf`
+- Roles permitidos: `admin`, `doctor`, `paciente` (paciente solo su propio ID).
+
+### Plantilla
+
+- Plantilla Jasper: `reports/templates/historial_medico_paciente.jrxml`
+- Salida temporal de PDF: `reports/output/`
+
+### Notas de seguridad
+
+- Los campos clinicos del expediente se descifran en backend y se envian a Jasper via datasource XML temporal.
+- Los archivos temporales del reporte se eliminan al finalizar el envio del PDF.
+
 ## Reglas importantes
 
 - No se permiten citas los domingos (ver `src/services/citasService.js`).

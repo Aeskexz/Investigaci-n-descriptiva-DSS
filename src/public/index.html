@@ -2554,6 +2554,7 @@
                         <br><small>ID: ${p.id} · ${p.email} · @${p.username}${p.telefono ? ' · ' + p.telefono : ''}</small>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-secondary btn-sm" onclick='descargarInformeHistorialPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.nombre || "Paciente")})'>PDF historial</button>
                         <button class="btn btn-outline btn-sm" onclick='editarPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.email)}, ${JSON.stringify(p.username)}, ${JSON.stringify(p.nombre)}, ${JSON.stringify(p.telefono || "")})'>Editar</button>
                     </div>
                 </div>
@@ -2649,10 +2650,42 @@
                         <br><small>ID: ${p.id || '-'} · ${p.email || '-'} · @${p.username || '-'}${p.telefono ? ' · ' + p.telefono : ''}</small>
                     </div>
                     <div style="display: flex; gap: 8px; flex-wrap: wrap; justify-content: flex-end;">
+                        <button class="btn btn-secondary btn-sm" onclick='descargarInformeHistorialPaciente(${JSON.stringify(p.id)}, ${JSON.stringify(p.nombre || "Paciente")})'>PDF historial</button>
                         <button class="btn btn-outline btn-sm" onclick='abrirExpedienteModal(${JSON.stringify(p.id)}, ${JSON.stringify(p.nombre || "Paciente")})'>Abrir expediente</button>
                     </div>
                 </div>
             `).join('');
+        }
+
+        async function descargarInformeHistorialPaciente(pacienteId, pacienteNombre) {
+            try {
+                const res = await fetch(`${API_URL}/reportes/pacientes/${encodeURIComponent(pacienteId)}/historial-medico.pdf`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) {
+                    let errorMsg = 'No se pudo generar el informe PDF.';
+                    try {
+                        const data = await res.json();
+                        errorMsg = data.mensaje || errorMsg;
+                    } catch (_) {
+                    }
+                    throw new Error(errorMsg);
+                }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const anchor = document.createElement('a');
+                const nombreBase = String(pacienteNombre || pacienteId || 'paciente').replace(/\s+/g, '_');
+                anchor.href = url;
+                anchor.download = `historial_medico_${nombreBase}.pdf`;
+                document.body.appendChild(anchor);
+                anchor.click();
+                anchor.remove();
+                URL.revokeObjectURL(url);
+            } catch (err) {
+                alert(err.message);
+            }
         }
 
         function aplicarBusquedaPacientesDoctor() {

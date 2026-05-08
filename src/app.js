@@ -7,6 +7,7 @@ const adminRoutes = require('./routes/adminRoutes');
 const citasRoutes = require('./routes/citasRoutes');
 const doctoresRoutes = require('./routes/doctoresRoutes');
 const expedienteRoutes = require('./routes/expedienteRoutes');
+const reportesRoutes = require('./routes/reportesRoutes');
 
 const app = express();
 
@@ -33,5 +34,6 @@ app.use('/api/admin', adminRoutes);
 app.use('/api/citas', citasRoutes);
 app.use('/api/doctores', doctoresRoutes);
 app.use('/api/expediente', expedienteRoutes);
+app.use('/api/reportes', reportesRoutes);
 
 module.exports = app;
