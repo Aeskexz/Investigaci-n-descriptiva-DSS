@@ -1294,7 +1294,16 @@
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000/api';
+        const API_URL = (() => {
+            const override = String(window.localStorage.getItem('api_url_override') || '').trim();
+            if (override) return override;
+
+            if (window.location.protocol === 'file:') {
+                return 'http://localhost:3000/api';
+            }
+
+            return `${window.location.origin}/api`;
+        })();
         const esPortalAdmin = window.location.pathname.replace(/\/+$/, '') === '/admin';
         let token = localStorage.getItem('token');
         let usuario = JSON.parse(localStorage.getItem('usuario') || 'null');
@@ -1515,6 +1524,12 @@
 
                 showMainContent();
             } catch (err) {
+                const isNetworkError = err instanceof TypeError && /fetch/i.test(String(err.message || ''));
+                if (isNetworkError) {
+                    alert(`Error de conexion con el servidor. Verifica que el backend este activo y accesible en: ${endpoint}`);
+                    return;
+                }
+
                 alert('Error: ' + err.message);
             }
         }
@@ -1723,7 +1738,8 @@
             if (!fechaIso) return '-';
             const fecha = new Date(fechaIso);
             if (Number.isNaN(fecha.getTime())) return '-';
-            return fecha.toLocaleString('es-ES', {
+            return fecha.toLocaleString('es-SV', {
+                timeZone: EL_SALVADOR_TIME_ZONE,
                 year: 'numeric',
                 month: '2-digit',
                 day: '2-digit',
@@ -1905,7 +1921,58 @@
         let doctorSeleccionadoNombre = null;
         let _availabilityWeekStart = null;
 
+        const EL_SALVADOR_TIME_ZONE = 'America/El_Salvador';
         const _diasSemana = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+        function _getElSalvadorNowParts(dateObj = new Date()) {
+            const formatter = new Intl.DateTimeFormat('sv-SE', {
+                timeZone: EL_SALVADOR_TIME_ZONE,
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            });
+            const values = Object.create(null);
+
+            formatter.formatToParts(dateObj).forEach((part) => {
+                if (part.type !== 'literal') {
+                    values[part.type] = part.value;
+                }
+            });
+
+            return values;
+        }
+
+        function _getElSalvadorNowDate() {
+            const parts = _getElSalvadorNowParts();
+            return new Date(
+                Number(parts.year),
+                Number(parts.month) - 1,
+                Number(parts.day),
+                Number(parts.hour),
+                Number(parts.minute),
+                Number(parts.second),
+                0
+            );
+        }
+
+        function _getElSalvadorTodayIso() {
+            const parts = _getElSalvadorNowParts();
+            return `${parts.year}-${parts.month}-${parts.day}`;
+        }
+
+        function _normalizeTimeWithSeconds(timeValue) {
+            const [hour = '00', minute = '00', second = '00'] = String(timeValue || '').split(':');
+            return [hour, minute, second].map((value) => String(value).padStart(2, '0')).join(':');
+        }
+
+        function _getElSalvadorNowIsoDateTime() {
+            const parts = _getElSalvadorNowParts();
+            return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}`;
+        }
 
         function _toIsoDateLocal(dateObj) {
             const y = dateObj.getFullYear();
@@ -1947,7 +2014,7 @@
             }
 
             if (!_availabilityWeekStart) {
-                _availabilityWeekStart = _getStartOfWeek(new Date());
+                _availabilityWeekStart = _getStartOfWeek(_getElSalvadorNowDate());
             }
 
             const inicioIso = _toIsoDateLocal(_availabilityWeekStart);
@@ -2002,7 +2069,7 @@
 
         function cambiarSemanaDisponibilidad(offsetWeeks) {
             if (!_availabilityWeekStart) {
-                _availabilityWeekStart = _getStartOfWeek(new Date());
+                _availabilityWeekStart = _getStartOfWeek(_getElSalvadorNowDate());
             }
 
             _availabilityWeekStart.setDate(_availabilityWeekStart.getDate() + (offsetWeeks * 7));
@@ -2056,7 +2123,7 @@
                 `Seleccionado: ${nombre}`;
             document.getElementById('doctorSeleccionado').style.color = 'var(--success)';
 
-            _availabilityWeekStart = _getStartOfWeek(new Date());
+            _availabilityWeekStart = _getStartOfWeek(_getElSalvadorNowDate());
             cargarDisponibilidadGrafica();
         }
 
@@ -2091,12 +2158,12 @@
         function esFechaHoraPasada(fecha, hora) {
             if (!fecha || !hora) return false;
 
-            const fechaHora = new Date(`${fecha}T${hora}`);
-            if (Number.isNaN(fechaHora.getTime())) {
+            const fechaHora = `${String(fecha).slice(0, 10)}T${_normalizeTimeWithSeconds(hora)}`;
+            if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(fechaHora)) {
                 return false;
             }
 
-            return fechaHora < new Date();
+            return fechaHora < _getElSalvadorNowIsoDateTime();
         }
 
         
@@ -2454,7 +2521,8 @@
             if (!fecha) return '-';
             const d = new Date(fecha);
             if (Number.isNaN(d.getTime())) return '-';
-            return d.toLocaleString('es-ES', {
+            return d.toLocaleString('es-SV', {
+                timeZone: EL_SALVADOR_TIME_ZONE,
                 year: 'numeric', month: '2-digit', day: '2-digit',
                 hour: '2-digit', minute: '2-digit'
             });
@@ -3032,7 +3100,7 @@
             if (usuario && usuario.rol === 'doctor') {
                 formWrap.classList.remove('hidden');
                 // Pre-fill date with today
-                const hoy = new Date().toISOString().slice(0, 10);
+                const hoy = _getElSalvadorTodayIso();
                 document.getElementById('expFecha').value = hoy;
             } else {
                 formWrap.classList.add('hidden');

@@ -1,3 +1,4 @@
+require('./src/config/timezone');
 require('dotenv').config();
 const app = require('./src/app');
 

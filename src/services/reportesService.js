@@ -4,6 +4,10 @@ const fsp = require('fs/promises');
 const { spawn } = require('child_process');
 const crypto = require('crypto');
 const PDFDocument = require('pdfkit');
+const {
+    formatDateTimeInElSalvador,
+    formatIsoDateTimeInElSalvador,
+} = require('../config/timezone');
 
 const REPORTS_DIR = path.join(__dirname, '../../reports');
 const TEMPLATES_DIR = path.join(REPORTS_DIR, 'templates');
@@ -48,7 +52,7 @@ function buildHistorialXml({ paciente, historial, generadoPor }) {
     </paciente>
     <meta>
         <generado_por>${escapeXml(generadoPor || '')}</generado_por>
-        <generado_en>${escapeXml(new Date().toISOString())}</generado_en>
+        <generado_en>${escapeXml(formatIsoDateTimeInElSalvador())}</generado_en>
     </meta>
     <entradas>${entradasXml}</entradas>
 </reporte>`;
@@ -101,7 +105,7 @@ function writePdfWithPdfKit(outputPdf, { paciente, historial, generadoPor }) {
         doc.text(`Email: ${paciente.email || '-'}`);
         doc.text(`Telefono: ${paciente.telefono || '-'}`);
         doc.text(`Generado por: ${generadoPor || '-'}`);
-        doc.text(`Generado en: ${new Date().toLocaleString('es-ES')}`);
+        doc.text(`Generado en: ${formatDateTimeInElSalvador()}`);
 
         doc.moveDown(1);
 
@@ -188,7 +192,7 @@ async function generarInformeHistorialPacientePdf({ paciente, historial, generad
         '-P', `P_PACIENTE_EMAIL=${paciente.email || ''}`,
         '-P', `P_PACIENTE_TELEFONO=${paciente.telefono || ''}`,
         '-P', `P_GENERADO_POR=${generadoPor || ''}`,
-        '-P', `P_GENERADO_EN=${new Date().toLocaleString('es-ES')}`,
+        '-P', `P_GENERADO_EN=${formatDateTimeInElSalvador()}`,
     ];
 
     try {

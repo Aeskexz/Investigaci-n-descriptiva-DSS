@@ -1,5 +1,6 @@
 const mysql = require('mysql2');
 require('dotenv').config();
+const { EL_SALVADOR_TIME_ZONE_OFFSET } = require('./config/timezone');
 const { generateUniqueUsername } = require('./utils/username');
 const { generateUniquePublicUserId } = require('./utils/userId');
 
@@ -17,6 +18,27 @@ const pool = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    timezone: EL_SALVADOR_TIME_ZONE_OFFSET,
+});
+
+function setConnectionTimeZone(connection) {
+    return new Promise((resolve, reject) => {
+        connection.query('SET time_zone = ?', [EL_SALVADOR_TIME_ZONE_OFFSET], (error) => {
+            if (error) {
+                return reject(error);
+            }
+
+            resolve();
+        });
+    });
+}
+
+pool.on('connection', (connection) => {
+    connection.query('SET time_zone = ?', [EL_SALVADOR_TIME_ZONE_OFFSET], (error) => {
+        if (error) {
+            console.error('No se pudo fijar la zona horaria de MySQL a El Salvador:', error);
+        }
+    });
 });
 
 const promisePool = pool.promise();
@@ -531,7 +553,11 @@ pool.getConnection((err, connection) => {
         return;
     }
 
-    initializeDatabase()
+    setConnectionTimeZone(connection)
+        .catch((timezoneError) => {
+            console.error('No se pudo fijar la zona horaria inicial de MySQL:', timezoneError);
+        })
+        .then(() => initializeDatabase())
         .then(() => {
             console.log('Conexión a MySQL establecida correctamente.');
             connection.release();
