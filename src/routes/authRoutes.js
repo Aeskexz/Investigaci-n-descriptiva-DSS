@@ -12,7 +12,7 @@ router.post('/login', authController.login);
 router.get('/perfil', verificarToken, authController.obtenerPerfil);
 router.get('/ajustes', verificarToken, authController.obtenerAjustesCuenta);
 router.put('/ajustes', verificarToken, authController.actualizarAjustesCuenta);
-router.put('/ajustes/foto', verificarToken, upload.single('foto'), authController.cambiarFotoPerfil);
+router.put('/ajustes/foto', verificarToken, esDoctor, upload.single('foto'), authController.cambiarFotoPerfil);
 router.put('/cambiar-password', verificarToken, authController.cambiarPasswordCuenta);
 router.delete('/cuenta', verificarToken, authController.eliminarMiCuenta);
 
@@ -20,6 +20,6 @@ router.delete('/cuenta', verificarToken, authController.eliminarMiCuenta);
 router.put('/perfil/paciente', verificarToken, esPaciente, authController.actualizarPerfilPaciente);
 router.put('/disponibilidad-consulta', verificarToken, esDoctor, authController.actualizarDisponibilidadConsultaDoctor);
 router.put('/hora-libre', verificarToken, esDoctor, authController.actualizarHoraLibreDoctor);
-router.put('/perfil/foto', verificarToken, upload.single('foto'), authController.cambiarFotoPerfil);
+router.put('/perfil/foto', verificarToken, esDoctor, upload.single('foto'), authController.cambiarFotoPerfil);
 
 module.exports = router;

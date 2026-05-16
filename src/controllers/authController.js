@@ -228,12 +228,11 @@ exports.obtenerAjustesCuenta = async (req, res) => {
 
         if (usuario.rol === 'paciente') {
             const [pacientes] = await db.query(
-                'SELECT nombre, telefono, foto_perfil FROM pacientes WHERE codigo_id = ?',
+                'SELECT nombre, telefono FROM pacientes WHERE codigo_id = ?',
                 [usuario.codigo_id]
             );
             nombre = pacientes[0]?.nombre || '';
             telefono = pacientes[0]?.telefono || '';
-            foto_perfil = pacientes[0]?.foto_perfil || null;
         }
 
         res.json({
@@ -570,6 +569,13 @@ exports.cambiarFotoPerfil = async (req, res) => {
     const rol = req.usuario.rol;
 
     try {
+        if (rol !== 'doctor') {
+            if (req.file) {
+                deleteStoredProfilePath(buildProfilePublicPath(req.file.filename));
+            }
+            return res.status(403).json({ mensaje: 'Solo los doctores pueden cambiar su foto de perfil en ajustes.' });
+        }
+
         if (!req.file) {
             return res.status(400).json({ mensaje: 'No se proporcionó ninguna imagen.' });
         }
